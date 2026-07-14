@@ -41,7 +41,12 @@ jobs:
           npm --version
           echo "repository=${GITHUB_REPOSITORY} workflow=release.yml ref=${RELEASE_TAG} environment=npm"
       - name: Exchange GitHub OIDC for a package-scoped npm token
-        run: bun run scripts/exchange-npm-oidc.ts
+        env:
+          AUTOMATION_COMMIT: ${{ github.workflow_sha }}
+        run: |
+          git fetch origin "${AUTOMATION_COMMIT}" --depth=1
+          git show "${AUTOMATION_COMMIT}:scripts/exchange-npm-oidc.ts" > "${RUNNER_TEMP}/exchange-npm-oidc.ts"
+          bun run "${RUNNER_TEMP}/exchange-npm-oidc.ts"
       - name: Install exact dependencies
         working-directory: typescript
         run: bun install --frozen-lockfile
