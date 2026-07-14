@@ -2,6 +2,8 @@ import { appendFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const PACKAGE_NAME = "@ignitionai/sdk";
+// Match npm-package-arg's escapedName format used by npm's own OIDC client.
+const ESCAPED_PACKAGE_NAME = "@ignitionai%2fsdk";
 const EXPECTED_REPOSITORY = "IgnitionAI/sdk";
 const EXPECTED_AUDIENCE = "npm:registry.npmjs.org";
 const EXPECTED_SUBJECT = `repo:${EXPECTED_REPOSITORY}:environment:npm`;
@@ -47,7 +49,7 @@ if (!workflowRef.includes(`${EXPECTED_REPOSITORY}/.github/workflows/release.yml@
 }
 
 const exchangeUrl = new URL(
-  `/-/npm/v1/oidc/token/exchange/package/${encodeURIComponent(PACKAGE_NAME)}`,
+  `/-/npm/v1/oidc/token/exchange/package/${ESCAPED_PACKAGE_NAME}`,
   "https://registry.npmjs.org",
 );
 const exchangeResponse = await fetch(exchangeUrl, {
