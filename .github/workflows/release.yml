@@ -40,6 +40,8 @@ jobs:
           test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
           npm --version
           echo "repository=${GITHUB_REPOSITORY} workflow=release.yml ref=${RELEASE_TAG} environment=npm"
+      - name: Exchange GitHub OIDC for a package-scoped npm token
+        run: bun run scripts/exchange-npm-oidc.ts
       - name: Install exact dependencies
         working-directory: typescript
         run: bun install --frozen-lockfile
@@ -62,3 +64,6 @@ jobs:
         if: ${{ !contains(env.RELEASE_TAG, '-rc.') }}
         working-directory: typescript
         run: npm publish --access public --tag latest --provenance
+      - name: Remove ephemeral npm credentials
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/ignition-sdk-oidc.npmrc"
