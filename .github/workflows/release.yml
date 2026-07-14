@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing signed release tag to retry
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,8 +19,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: npm
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.0
@@ -24,6 +34,12 @@ jobs:
           package-manager-cache: false
       - name: Use an OIDC-capable npm CLI
         run: npm install --global npm@11.18.0
+      - name: Verify OIDC runtime identity
+        run: |
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
+          npm --version
+          echo "repository=${GITHUB_REPOSITORY} workflow=release.yml ref=${RELEASE_TAG} environment=npm"
       - name: Install exact dependencies
         working-directory: typescript
         run: bun install --frozen-lockfile
@@ -37,12 +53,12 @@ jobs:
           bun test
           bun run build
       - name: Validate release tag and public boundary
-        run: bun run scripts/validate-release.ts "${GITHUB_REF_NAME}"
+        run: bun run scripts/validate-release.ts "${RELEASE_TAG}"
       - name: Publish release candidate with OIDC
-        if: contains(github.ref_name, '-rc.')
+        if: contains(env.RELEASE_TAG, '-rc.')
         working-directory: typescript
-        run: npm publish --access public --tag next
+        run: npm publish --access public --tag next --provenance
       - name: Publish stable with OIDC
-        if: ${{ !contains(github.ref_name, '-rc.') }}
+        if: ${{ !contains(env.RELEASE_TAG, '-rc.') }}
         working-directory: typescript
-        run: npm publish --access public --tag latest
+        run: npm publish --access public --tag latest --provenance
