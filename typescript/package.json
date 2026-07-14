@@ -1,0 +1,90 @@
+{
+  "name": "@ignitionai/sdk",
+  "version": "0.3.0-rc.1",
+  "description": "TypeScript SDK for licensed and self-hosted IgnitionRAG deployments",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./adapters/vercel-ai": {
+      "import": {
+        "types": "./dist/esm/adapters/vercel-ai.d.ts",
+        "default": "./dist/esm/adapters/vercel-ai.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/vercel-ai.d.ts",
+        "default": "./dist/cjs/adapters/vercel-ai.js"
+      }
+    },
+    "./browser": {
+      "import": {
+        "types": "./dist/esm/browser.d.ts",
+        "default": "./dist/esm/browser.js"
+      },
+      "require": {
+        "types": "./dist/cjs/browser.d.ts",
+        "default": "./dist/cjs/browser.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun run clean && bun run build:esm && bun run build:cjs && bun run build:cjs-pkg",
+    "clean": "bun -e 'import { rmSync } from \"node:fs\"; rmSync(\"dist\", { recursive: true, force: true })'",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:cjs-pkg": "echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.generated.json",
+    "generate:types": "bun run scripts/generate-wire-types.ts",
+    "verify:contract": "bun run scripts/verify-contract.ts"
+  },
+  "keywords": [
+    "rag",
+    "ai",
+    "embeddings",
+    "vector-search",
+    "ignitionai",
+    "sdk",
+    "streaming",
+    "sse"
+  ],
+  "author": "IgnitionAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IgnitionAI/sdk.git",
+    "directory": "typescript"
+  },
+  "homepage": "https://github.com/IgnitionAI/sdk#readme",
+  "bugs": {
+    "url": "https://github.com/IgnitionAI/sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.3.0"
+  }
+}
