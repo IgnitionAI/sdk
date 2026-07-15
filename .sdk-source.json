@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "a7ac050030bc0a5bb06bf0a423db0f91cb82bfea",
+  "sourceCommit": "9bdddf7cd74217dcb7fc79ee83db55408060a80d",
   "contract": "contracts/2026.07/public-sdk-contract.json",
   "packages": [
     "typescript"

@@ -10,10 +10,13 @@ TypeScript SDK for your licensed or self-hosted IgnitionRAG deployment. Zero dep
 ## Installation
 
 ```bash
-npm install @ignitionai/sdk
+npm install @ignitionai/sdk@next
 # or
-bun add @ignitionai/sdk
+bun add @ignitionai/sdk@next
 ```
+
+The `0.3.0-rc.3` release candidate is published under the `next` tag. The
+`latest` tag remains on the stable `0.2.x` line until the official promotion.
 
 ## Setup
 
@@ -170,6 +173,26 @@ for await (const event of stream) {
 }
 ```
 
+## Deep Research
+
+Monitor and cancel a Deep Research run that was started by an agent. Closing
+the stream only stops the local listener; call `cancel()` to stop the remote
+execution.
+
+```typescript
+const current = await client.deepResearch.status("agent_xxxx");
+
+if (current) {
+  console.log(current.execution.status, current.execution.tokenCount);
+}
+
+for await (const event of client.deepResearch.stream("agent_xxxx")) {
+  console.log(event.type, event.data);
+}
+
+await client.deepResearch.cancel("agent_xxxx");
+```
+
 ## Agents
 
 ```typescript
@@ -215,6 +238,70 @@ await client.agents.delete("agent_xxxx");
 // Delete (permanent)
 await client.agents.delete("agent_xxxx", true);
 ```
+
+## Workflows
+
+```typescript
+const validation = await client.workflows.validate("workflow_xxxx");
+if (!validation.valid) {
+  console.error(validation.errors);
+}
+
+const run = await client.workflows.execute("workflow_xxxx", {
+  input: { question: "Summarize the latest customer feedback" },
+});
+
+const execution = await client.workflows.getExecution(run.executionId);
+console.log(execution.status, execution.output);
+
+const history = await client.workflows.listExecutions("workflow_xxxx", {
+  limit: 20,
+});
+
+if (execution.status === "running") {
+  await client.workflows.cancelExecution(execution.id);
+}
+```
+
+Aborting the HTTP request does not cancel a remote workflow execution. Use
+`cancelExecution()` when the execution itself must stop.
+
+## Data Chat
+
+Query collections and external data connectors through the same governed
+request. Run the precheck first when you want to surface incompatible or
+unavailable sources before execution.
+
+```typescript
+const resources = [
+  { type: "collection" as const, id: "coll_xxxx" },
+  { type: "data_connector" as const, id: "connector_xxxx" },
+];
+
+const precheck = await client.dataChat.precheck({
+  llmConfigId: "llm_xxxx",
+  resources,
+});
+
+if (!precheck.compatible) {
+  console.warn(precheck.resources.filter((resource) => !resource.compatible));
+}
+
+const response = await client.dataChat.send({
+  query: "Compare Q2 revenue with the signed customer reports",
+  llmConfigId: "llm_xxxx",
+  resources,
+});
+
+console.log(response.answer);
+if (response.completeness === "partial") {
+  console.warn("Missing sources:", response.missingSources);
+}
+```
+
+Every source reports its own outcome and provenance. A failed connector can
+therefore produce an explicit partial response instead of hiding the failure or
+discarding successful results from the other sources.
 
 ## Collections
 
