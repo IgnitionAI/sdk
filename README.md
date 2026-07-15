@@ -11,9 +11,13 @@ IgnitionRAG itself is licensed software. This repository contains client librari
 ## TypeScript
 
 ```bash
-bun add @ignitionai/sdk
-# or npm install @ignitionai/sdk
+bun add @ignitionai/sdk@next
+# or npm install @ignitionai/sdk@next
 ```
+
+The current public release is `0.3.0-rc.3` under the npm `next` tag. The
+unqualified install command remains on the stable `0.2.x` line until `0.3.0` is
+promoted to `latest`.
 
 ```ts
 import { IgnitionAI } from "@ignitionai/sdk";
