@@ -69,7 +69,7 @@ async function* parseSSE(response: Response): AsyncGenerator<SSEEvent> {
           `SSE frame exceeds the ${MAX_SSE_FRAME_BYTES.toLocaleString("en-US")}-byte limit.`
         );
       }
-      const lines = buffer.split("\n");
+      const lines = buffer.split(/\r?\n/);
       // Keep the last potentially incomplete line in the buffer
       buffer = lines.pop() ?? "";
 
@@ -80,7 +80,7 @@ async function* parseSSE(response: Response): AsyncGenerator<SSEEvent> {
             `SSE frame exceeds the ${MAX_SSE_FRAME_BYTES.toLocaleString("en-US")}-byte limit.`
           );
         }
-        if (line === "") {
+        if (line === "" || line === "\r") {
           // Blank line = end of event
           if (currentData.length > 0) {
             yield {

@@ -153,6 +153,21 @@ describe("ChatStream", () => {
     ]);
   });
 
+  test("handles CRLF split between network chunks", async () => {
+    const response = chunkedSSEResponse([
+      "event: chunk\r",
+      "\ndata: \"Hello\"\r",
+      "\n\r",
+      "\nevent: done\r\ndata: \r\n\r\n",
+    ]);
+    const events = [];
+    for await (const event of new ChatStream(response)) events.push(event);
+    expect(events).toEqual([
+      { type: "chunk", content: "Hello" },
+      { type: "done" },
+    ]);
+  });
+
   test("ignores comment lines", async () => {
     const response = sseResponse(
       `: this is a comment\nevent: chunk\ndata: "Hi"\n\nevent: done\ndata: \n\n`
