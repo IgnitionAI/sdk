@@ -16,15 +16,42 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.0
+      - name: Test the reviewed contract-selection policy
+        run: bun test ./.github/workflows/sdk-contract-inputs.test.ts
+      - name: Select the contract archived by the SDK sync
+        id: sdk-contract
+        run: bun run .github/workflows/sdk-contract-inputs.ts
       - name: Install exact dependencies
         working-directory: typescript
         run: bun install --frozen-lockfile
       - name: Verify signed contract
         working-directory: typescript
-        run: bun run verify:contract
+        env:
+          CONTRACT_PATH: ${{ steps.sdk-contract.outputs.contract_path }}
+          MINIMUM_RELEASE_SEQUENCE: ${{ steps.sdk-contract.outputs.minimum_release_sequence }}
+          REQUIRE_SDK_IDENTITY: ${{ steps.sdk-contract.outputs.require_sdk_identity }}
+        run: |
+          strict_identity_args=()
+          case "${REQUIRE_SDK_IDENTITY}" in
+            true) strict_identity_args=(--require-sdk-identity) ;;
+            false) ;;
+            *) echo "Invalid SDK identity policy output" >&2; exit 1 ;;
+          esac
+          bun run verify:contract -- \
+            --contract "../${CONTRACT_PATH}" \
+            --minimum-release-sequence "${MINIMUM_RELEASE_SEQUENCE}" \
+            "${strict_identity_args[@]}"
       - name: Regenerate public types
         working-directory: typescript
-        run: bun run generate:types -- --contract ../contracts/2026.07/public-sdk-contract.json
+        env:
+          CONTRACT_PATH: ${{ steps.sdk-contract.outputs.contract_path }}
+          PREVIOUS_CONTRACTS_JSON: ${{ steps.sdk-contract.outputs.previous_contracts_json }}
+        run: |
+          previous_args=()
+          while IFS= read -r version; do
+            previous_args+=(--previous-contract "${version}")
+          done < <(jq -r '.[]' <<< "${PREVIOUS_CONTRACTS_JSON}")
+          bun run generate:types -- --contract "../${CONTRACT_PATH}" "${previous_args[@]}"
       - name: Reject generated drift
         run: git diff --exit-code -- typescript/src/generated/public-api.ts typescript/src/contract.ts
       - name: Check public boundary

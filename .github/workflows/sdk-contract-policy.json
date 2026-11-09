@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "contracts": {
+    "2026.07": {
+      "minimumReleaseSequence": 1,
+      "requireSdkIdentity": false,
+      "previousContracts": ["2026.06"]
+    },
+    "2026.11": {
+      "minimumReleaseSequence": 5,
+      "requireSdkIdentity": true,
+      "previousContracts": ["2026.10", "2026.09"]
+    }
+  }
+}
