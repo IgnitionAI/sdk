@@ -8,6 +8,6 @@ const packageJson = JSON.parse(await readFile("typescript/package.json", "utf8")
 if (tag !== `v${packageJson.version}`) {
   throw new Error(`Tag ${tag} does not match package version ${packageJson.version}`);
 }
-process.argv.push("--built");
+if (!process.argv.includes("--metadata-only")) process.argv.push("--built");
 await import("./validate-public-surface.ts");
 console.log(`Validated release ${tag}`);

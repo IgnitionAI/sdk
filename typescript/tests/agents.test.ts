@@ -55,6 +55,20 @@ describe("agents.get", () => {
 });
 
 describe("agents.create", () => {
+  test("preserves explicit licensed provider selection and nullable update fields", async () => {
+    const bodies: unknown[] = [];
+    const client = createClient(async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return Response.json({ id: "agent-fixture", name: "Licensed" });
+    });
+    await client.agents.create({ name: "Licensed", llmConfigId: "primary-config", fallbackLlmConfigId: null, runtimeKind: "byok_api" });
+    await client.agents.update("agent-fixture", { llmConfigId: null, fallbackLlmConfigId: "fallback-config", runtimeKind: "byok_api" });
+    expect(bodies).toEqual([
+      { name: "Licensed", llmConfigId: "primary-config", fallbackLlmConfigId: null, runtimeKind: "byok_api" },
+      { llmConfigId: null, fallbackLlmConfigId: "fallback-config", runtimeKind: "byok_api" },
+    ]);
+  });
+
   test("POST /agents with params", async () => {
     const created = {
 			id: "agent_new",
@@ -183,5 +197,72 @@ describe("agents.generate", () => {
     const body = JSON.parse((fetchMock as any).mock.calls[0][1].body);
     expect(body.description).toBe("Un assistant support pour notre SaaS");
     expect(body.language).toBe("fr");
+  });
+});
+
+describe("managed agent contract", () => {
+  test("rejects provider/runtime overrides before dispatch and strips private response fields", async () => {
+    const fetchMock = jsonFetch({ agents: [{
+      id: "agent_1", name: "Support", description: null, collectionId: "collection_1",
+      systemPrompt: "Help customers", instructions: null, enabledBuiltinTools: ["web_search"],
+      skillIds: [], workflowToolIds: [], isActive: true, createdAt: "now", updatedAt: "now",
+      model: "secret-model", llmConfigId: "secret-config", mcpServers: [{ token: "secret-token" }],
+      runtimePreferences: { model: "also-secret" },
+    }] });
+    const client = createClient(fetchMock);
+
+    await expect(client.agents.managed.create({ name: "Nope", model: "private-model" } as never))
+      .rejects.toThrow("Managed agents cannot override provider or runtime configuration");
+    await expect(client.agents.managed.create({ name: "Nope", mcpServers: [{ token: "private-token" }] } as never))
+      .rejects.toThrow("Managed agents cannot override provider or runtime configuration");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const agents = await client.agents.managed.list();
+    expect(agents).toHaveLength(1);
+    expect(agents[0].name).toBe("Support");
+    expect(agents[0]).not.toHaveProperty("model");
+    expect(agents[0]).not.toHaveProperty("llmConfigId");
+    expect(agents[0]).not.toHaveProperty("mcpServers");
+    expect(agents[0]).not.toHaveProperty("runtimePreferences");
+  });
+
+  test("sends only managed business fields and preserves licensed resource methods", async () => {
+    const fetchMock = jsonFetch({
+      id: "agent_1", name: "Support", description: null, collectionId: null,
+      systemPrompt: "Help", instructions: null, enabledBuiltinTools: ["web_search"],
+      skillIds: [], workflowToolIds: [], isActive: true, createdAt: "now", updatedAt: "now",
+      model: "private-model", llmConfigId: "private-config",
+    });
+    const client = createClient(fetchMock);
+    const agent = await client.agents.managed.create({ name: "Support", systemPrompt: "Help" });
+    expect(agent.name).toBe("Support");
+    expect(agent).not.toHaveProperty("model");
+    const body = JSON.parse((fetchMock as any).mock.calls[0][1].body);
+    expect(body).toEqual({ name: "Support", systemPrompt: "Help" });
+
+    await client.agents.create({ name: "Licensed", model: "local-model" });
+    const legacyBody = JSON.parse((fetchMock as any).mock.calls[1][1].body);
+    expect(legacyBody.model).toBe("local-model");
+  });
+
+  test("updates managed agent activation with a boolean and rejects invalid or provider fields before dispatch", async () => {
+    const fetchMock = jsonFetch({
+      id: "agent_1", name: "Support", description: null, collectionId: null,
+      systemPrompt: "Help", instructions: null, enabledBuiltinTools: [],
+      skillIds: [], workflowToolIds: [], isActive: false, createdAt: "now", updatedAt: "now",
+    });
+    const client = createClient(fetchMock);
+
+    await expect(client.agents.managed.update("agent_1", { isActive: "false" as never }))
+      .rejects.toThrow("isActive must be a boolean");
+    await expect(client.agents.managed.update("agent_1", { isActive: false, model: "private-model" } as never))
+      .rejects.toThrow("Managed agents cannot override provider or runtime configuration");
+    await expect(client.agents.managed.create({ name: "Support", isActive: false } as never))
+      .rejects.toThrow("Managed contract does not accept isActive");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const updated = await client.agents.managed.update("agent_1", { isActive: false });
+    expect(updated.isActive).toBe(false);
+    expect(JSON.parse((fetchMock as any).mock.calls[0][1].body)).toEqual({ isActive: false });
   });
 });

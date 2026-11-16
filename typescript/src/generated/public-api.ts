@@ -1,4 +1,4 @@
-// Generated from the verified IgnitionRAG public contract.
+// Generated from the canonical IgnitionRAG public contract.
 // Do not edit and do not export this module from the package root.
 export type paths = {
     readonly "/api/agents": {
@@ -234,7 +234,7 @@ export type paths = {
         };
         /**
          * List all collections
-         * @description Lists organization's collections. Pro+ users can include shared/public collections with includeShared=true or includePublic=true.
+         * @description Lists organization collections and optionally includes shared or public collections.
          */
         readonly get: operations["collections.list"];
         readonly put?: never;
@@ -260,6 +260,23 @@ export type paths = {
          */
         readonly put: operations["collections.setRagConfig"];
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/collections/:collectionId/rag-config/test": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Run A/B test comparing two RAG configurations */
+        readonly post: operations["ragExperiments.runAbTest"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -440,40 +457,6 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/api/data-chat": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly get?: never;
-        readonly put?: never;
-        /** Chat across selected collections and live data */
-        readonly post: operations["dataChat.send"];
-        readonly delete?: never;
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
-    };
-    readonly "/api/data-chat/precheck": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly get?: never;
-        readonly put?: never;
-        /** Precheck selected collection and connector compatibility */
-        readonly post: operations["dataChat.precheck"];
-        readonly delete?: never;
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
-    };
     readonly "/api/evaluations/:evaluationId": {
         readonly parameters: {
             readonly query?: never;
@@ -484,6 +467,26 @@ export type paths = {
         readonly get: operations["evaluations.get"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/feedback": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Submit feedback
+         * @description Submit a bug report, feature request, or general feedback
+         */
+        readonly post: operations["feedback.submit"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -640,8 +643,8 @@ export type paths = {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Ingest file (PDF, DOCX, etc.)
-         * @description Uploads and indexes a file. Set enableMultimodal=true to use Jina CLIP v2 for cross-modal search (Pro+ plans only).
+         * Ingest file synchronously (license only)
+         * @description Uploads and indexes a file in the current request. SaaS rejects this route with 503; use POST /api/ingest/file/async. Set enableMultimodal=true to use Jina CLIP v2 for cross-modal search when allowed by administrator policy.
          */
         readonly post: operations["ingestion.file"];
         readonly delete?: never;
@@ -660,10 +663,78 @@ export type paths = {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Ingest file with progress streaming
-         * @description Uploads a file and returns immediately with a jobId. Use the SSE endpoint to track progress. Set enableMultimodal=true for cross-modal search (Pro+ plans only).
+         * Ingest file (PDF, DOCX, etc.)
+         * @description Uploads a file and returns immediately with a jobId. This is the supported file ingestion route in SaaS. Use the SSE endpoint to track progress. Set enableMultimodal=true for cross-modal search when allowed by administrator policy.
          */
         readonly post: operations["ingestion.fileAsync"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ingest/jobs": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** List durable ingestion jobs for a collection */
+        readonly get: operations["ingestion.listJobs"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ingest/jobs/{jobId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Get durable ingestion job state */
+        readonly get: operations["ingestion.getJob"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ingest/jobs/{jobId}/cancel": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Cancel a durable ingestion job */
+        readonly post: operations["ingestion.cancelJob"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ingest/jobs/{jobId}/stream": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Stream durable ingestion job state */
+        readonly get: operations["ingestion.streamJob"];
+        readonly put?: never;
+        readonly post?: never;
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -716,6 +787,74 @@ export type paths = {
         };
         /** Resolve a single public collection by slug */
         readonly get: operations["collections.getPublic"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/traces": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** List scoped traces */
+        readonly get: operations["observability.listTraces"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/traces/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Get a scoped trace */
+        readonly get: operations["observability.getTrace"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/traces/export": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Export scoped traces */
+        readonly get: operations["observability.exportTraces"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/traces/metrics": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Get scoped trace metrics */
+        readonly get: operations["observability.getTraceMetrics"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
@@ -843,6 +982,174 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        readonly ABTestConfig: {
+            readonly configA: components["schemas"]["RAGConfigInput"];
+            readonly configB: components["schemas"]["RAGConfigInput"];
+            /** @default false */
+            readonly evaluateQuality: boolean;
+            /** @example What is machine learning? */
+            readonly testQuery: string;
+        };
+        readonly ABTestResult: {
+            readonly comparison: {
+                /** @enum {string} */
+                readonly qualityConfidence?: "high" | "medium" | "low";
+                readonly qualityDimensions?: {
+                    readonly clarity: {
+                        readonly reasoning: string;
+                        /** @enum {string} */
+                        readonly winner: "A" | "B" | "tie";
+                    };
+                    readonly completeness: {
+                        readonly reasoning: string;
+                        /** @enum {string} */
+                        readonly winner: "A" | "B" | "tie";
+                    };
+                    readonly faithfulness: {
+                        readonly reasoning: string;
+                        /** @enum {string} */
+                        readonly winner: "A" | "B" | "tie";
+                    };
+                    readonly relevance: {
+                        readonly reasoning: string;
+                        /** @enum {string} */
+                        readonly winner: "A" | "B" | "tie";
+                    };
+                };
+                readonly qualityReasoning?: string;
+                /** @enum {string} */
+                readonly qualityWinner?: "A" | "B" | "tie";
+                readonly recommendation: string;
+                readonly resultOverlap: number;
+                readonly speedDifferenceMs: number;
+                /** @enum {string} */
+                readonly speedWinner: "A" | "B" | "tie";
+            };
+            readonly configA: {
+                readonly config: {
+                    readonly features: {
+                        readonly citations: boolean;
+                        readonly contextualRetrieval: boolean;
+                        readonly dynamicFeatureSelection: boolean;
+                        readonly hybridSearch: boolean;
+                        readonly hyde: boolean;
+                        readonly multiQuery: boolean;
+                        readonly parallelEnhancement: boolean;
+                        readonly queryExpansion: boolean;
+                        readonly queryRewriting: boolean;
+                        readonly reranking: boolean;
+                        readonly selfQuery: boolean;
+                    };
+                    readonly hybridSearch: {
+                        readonly alpha: number;
+                        readonly bm25: {
+                            readonly b: number;
+                            readonly k1: number;
+                        };
+                        readonly rrf: {
+                            readonly k: number;
+                        };
+                    };
+                    readonly llm: {
+                        /** @enum {string} */
+                        readonly citationFormat: "brackets" | "footnote" | "inline";
+                    };
+                    readonly reranking: {
+                        /** @enum {string} */
+                        readonly provider: "jina" | "llm";
+                        readonly topN: number;
+                    };
+                    readonly retrieval: {
+                        readonly topK: number;
+                    };
+                    /** @enum {number} */
+                    readonly version: 1;
+                };
+                readonly featuresUsed: readonly string[];
+                readonly metrics: {
+                    readonly queryEnhancementMs: number;
+                    readonly rerankMs: number;
+                    readonly resultsCount: number;
+                    readonly searchMs: number;
+                    readonly totalTimeMs: number;
+                };
+                readonly qualityScores?: {
+                    readonly clarity: number;
+                    readonly completeness: number;
+                    readonly faithfulness: number;
+                    readonly overall: number;
+                    readonly relevance: number;
+                };
+                readonly response?: string;
+                readonly topResults: readonly {
+                    readonly id: string;
+                    readonly score: number;
+                    readonly title?: string;
+                }[];
+            };
+            readonly configB: {
+                readonly config: {
+                    readonly features: {
+                        readonly citations: boolean;
+                        readonly contextualRetrieval: boolean;
+                        readonly dynamicFeatureSelection: boolean;
+                        readonly hybridSearch: boolean;
+                        readonly hyde: boolean;
+                        readonly multiQuery: boolean;
+                        readonly parallelEnhancement: boolean;
+                        readonly queryExpansion: boolean;
+                        readonly queryRewriting: boolean;
+                        readonly reranking: boolean;
+                        readonly selfQuery: boolean;
+                    };
+                    readonly hybridSearch: {
+                        readonly alpha: number;
+                        readonly bm25: {
+                            readonly b: number;
+                            readonly k1: number;
+                        };
+                        readonly rrf: {
+                            readonly k: number;
+                        };
+                    };
+                    readonly llm: {
+                        /** @enum {string} */
+                        readonly citationFormat: "brackets" | "footnote" | "inline";
+                    };
+                    readonly reranking: {
+                        /** @enum {string} */
+                        readonly provider: "jina" | "llm";
+                        readonly topN: number;
+                    };
+                    readonly retrieval: {
+                        readonly topK: number;
+                    };
+                    /** @enum {number} */
+                    readonly version: 1;
+                };
+                readonly featuresUsed: readonly string[];
+                readonly metrics: {
+                    readonly queryEnhancementMs: number;
+                    readonly rerankMs: number;
+                    readonly resultsCount: number;
+                    readonly searchMs: number;
+                    readonly totalTimeMs: number;
+                };
+                readonly qualityScores?: {
+                    readonly clarity: number;
+                    readonly completeness: number;
+                    readonly faithfulness: number;
+                    readonly overall: number;
+                    readonly relevance: number;
+                };
+                readonly response?: string;
+                readonly topResults: readonly {
+                    readonly id: string;
+                    readonly score: number;
+                    readonly title?: string;
+                }[];
+            };
+        };
         readonly Agent: {
             readonly collectionId: string | null;
             readonly collectionName?: string | null;
@@ -856,6 +1163,7 @@ export type components = {
             readonly id: string;
             readonly instructions: string | null;
             readonly isActive: boolean;
+            readonly isDefault: boolean;
             readonly llmConfigId: string | null;
             readonly maxTokens: number;
             readonly mcpServers: readonly components["schemas"]["McpServer"][] | null;
@@ -863,6 +1171,17 @@ export type components = {
             readonly name: string;
             readonly openWebuiEnabled: boolean;
             readonly resources: readonly components["schemas"]["AgentResource"][];
+            /** Format: uuid */
+            readonly runtimeConnectionId: string | null;
+            /** @enum {string} */
+            readonly runtimeKind: "byok_api" | "cli_runtime" | "ignis";
+            readonly runtimePreferences: {
+                readonly mode?: string | null;
+                readonly model?: string | null;
+                readonly reasoningLevel?: string | null;
+            } | null;
+            /** Format: uuid */
+            readonly runtimeProfileId: string | null;
             readonly scoreThreshold: number;
             readonly skillIds: readonly string[];
             readonly subAgentIds: readonly string[] | null;
@@ -900,13 +1219,16 @@ export type components = {
             /** @default 0 */
             readonly priority: number;
             /** @enum {string} */
-            readonly type: "collection" | "data_connector";
+            readonly type: "collection";
         };
         readonly AgentSkill: {
             readonly builtinTools: readonly components["schemas"]["BuiltinToolConfig"][] | null;
+            readonly builtinVersion?: string;
             readonly constraints: string | null;
+            readonly contentHash?: string;
             readonly createdAt: string;
             readonly createdByUserId: string | null;
+            readonly currentVersion?: number;
             readonly description: string | null;
             readonly examples: readonly components["schemas"]["AgentSkillExample"][] | null;
             /** Format: uuid */
@@ -914,6 +1236,9 @@ export type components = {
             readonly instructions: string | null;
             readonly mcpServerRefs: readonly string[] | null;
             readonly name: string;
+            /** @enum {string} */
+            readonly origin?: "organization" | "builtin";
+            readonly readOnly?: boolean;
             readonly status: components["schemas"]["AgentSkillStatus"];
             readonly updatedAt: string;
             readonly workflowToolRefs: readonly string[] | null;
@@ -935,6 +1260,7 @@ export type components = {
             readonly resources?: readonly components["schemas"]["ResourceAttachment"][];
         };
         readonly ChatErrorResponse: {
+            readonly code?: string;
             readonly error: string;
         };
         readonly ChatRequest: {
@@ -944,6 +1270,7 @@ export type components = {
             /** @default true */
             readonly includeImages: boolean;
             readonly llmConfigId?: string;
+            readonly maximumMilliCredits?: string;
             readonly query: string;
         };
         readonly ChatResponse: {
@@ -958,6 +1285,16 @@ export type components = {
                 readonly completionTokens: number;
                 readonly promptTokens: number;
             };
+        };
+        readonly ChatValidationError: {
+            /** @enum {string} */
+            readonly code: "VALIDATION_ERROR";
+            readonly details: readonly {
+                readonly field: string;
+                readonly message: string;
+                readonly path: readonly (string | number)[];
+            }[];
+            readonly error: string;
         };
         readonly Chunk: {
             readonly blobPath?: string;
@@ -993,6 +1330,14 @@ export type components = {
             readonly total: number;
         };
         readonly Collection: {
+            readonly accessPolicy?: {
+                /** @enum {string} */
+                readonly mode: "inherit";
+            } | {
+                /** @enum {string} */
+                readonly mode: "restricted";
+                readonly roleIds: readonly string[];
+            } | unknown;
             /**
              * @description How the caller can access this collection. Public/shared collections may be read-only for consumers.
              * @enum {string}
@@ -1017,6 +1362,7 @@ export type components = {
             readonly isReadOnly?: boolean;
             /** @description Whether this is an admin-managed public collection */
             readonly isSystemCollection?: boolean;
+            readonly lastSyncedAt?: string | null;
             readonly name: string;
             /** @description Owning organization id when this response represents a shared/public collection consumed by another scope. */
             readonly publisherOrgId?: string | null;
@@ -1025,6 +1371,15 @@ export type components = {
              * @enum {string|null}
              */
             readonly requiredPlanId?: "pro" | "scale" | "enterprise" | null;
+            readonly servedSource?: {
+                readonly activatedAt: string | null;
+                /** @enum {boolean} */
+                readonly officialCorpusQualified: false;
+                readonly sourceRevision: string | null;
+                readonly sourceTimestamp: string | null;
+                /** @enum {string} */
+                readonly status: "verified_receipt" | "unknown";
+            };
             /** @description URL-safe identifier for public collections (e.g., 'code-du-travail'). Unique across all public collections. */
             readonly slug?: string | null;
             /** @description Source identifier for public collections (e.g., 'legifrance', 'insee-sirene') */
@@ -1037,6 +1392,14 @@ export type components = {
             readonly visibility: "private" | "shared" | "public";
         };
         readonly CollectionDocument: {
+            readonly accessPolicy?: {
+                /** @enum {string} */
+                readonly mode: "inherit";
+            } | {
+                /** @enum {string} */
+                readonly mode: "restricted";
+                readonly roleIds: readonly string[];
+            } | unknown;
             readonly chunksCount: number;
             readonly createdAt: string;
             readonly embeddingModel: string | null;
@@ -1045,6 +1408,15 @@ export type components = {
             readonly id: string;
             readonly imagesCount: number;
             readonly ingestionReport: components["schemas"]["CollectionDocumentIngestionReport"];
+            readonly processingSummary?: {
+                readonly hasWarnings: boolean;
+                readonly imagesDetected: number;
+                readonly imagesIndexed: number;
+                readonly pageCount?: number;
+                readonly pagesReadByOcr: number;
+                readonly tablesDetected: number;
+                readonly unreadablePages: number;
+            } | null;
             readonly sourceType: string;
             readonly sourceUrl: string | null;
             readonly storageBytes: number;
@@ -1131,16 +1503,44 @@ export type components = {
             readonly success: boolean;
         };
         readonly CrawlSelectedPagesRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             readonly collectionId: string;
-            /** @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher. */
+            /** @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy. */
             readonly enableMultimodal?: boolean;
             readonly urls: readonly string[];
         };
         readonly CrawlSiteRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             /** @example coll_123 */
             readonly collectionId: string;
             /**
-             * @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher.
+             * @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy.
              * @example false
              */
             readonly enableMultimodal?: boolean;
@@ -1176,11 +1576,9 @@ export type components = {
             readonly instructions?: string;
             /** Format: uuid */
             readonly llmConfigId?: string | null;
-            /** @default 2048 */
-            readonly maxTokens: number;
+            readonly maxTokens?: number;
             readonly mcpServers?: readonly components["schemas"]["McpServer"][];
-            /** @default gpt-4.1-mini */
-            readonly model: string;
+            readonly model?: string;
             /** @example Support Assistant */
             readonly name: string;
             /** @default false */
@@ -1191,18 +1589,29 @@ export type components = {
                 /** @default 0 */
                 readonly priority: number;
                 /** @enum {string} */
-                readonly type: "collection" | "data_connector";
+                readonly type: "collection";
             }[];
-            /** @default 0 */
-            readonly scoreThreshold: number;
+            /** Format: uuid */
+            readonly runtimeConnectionId?: string | null;
+            /**
+             * @default byok_api
+             * @enum {string}
+             */
+            readonly runtimeKind: "byok_api";
+            readonly runtimePreferences?: {
+                readonly mode?: string | null;
+                readonly model?: string | null;
+                readonly reasoningLevel?: string | null;
+            } | null;
+            /** Format: uuid */
+            readonly runtimeProfileId?: string | null;
+            readonly scoreThreshold?: number;
             /** @default [] */
             readonly skillIds: readonly string[];
             readonly subAgentIds?: readonly string[];
             readonly systemPrompt?: string;
-            /** @default 70 */
-            readonly temperature: number;
-            /** @default 5 */
-            readonly topK: number;
+            readonly temperature?: number;
+            readonly topK?: number;
             /** @default [] */
             readonly workflowToolIds: readonly string[];
         };
@@ -1222,6 +1631,14 @@ export type components = {
             readonly workflowToolRefs: readonly string[];
         };
         readonly CreateCollectionRequest: {
+            readonly accessPolicy?: {
+                /** @enum {string} */
+                readonly mode: "inherit";
+            } | {
+                /** @enum {string} */
+                readonly mode: "restricted";
+                readonly roleIds: readonly string[];
+            };
             /** @example Product documentation */
             readonly description?: string;
             /** @description Optional embedding config ID to override the org default. Must reference a valid embedding config owned by this org/user. */
@@ -1245,7 +1662,7 @@ export type components = {
              */
             readonly sourceDataset?: string;
             /**
-             * @description Collection visibility. Only admin users can set 'shared' or 'public'. Public collections require Pro+ plan.
+             * @description Must be omitted or 'private'. Public or shared create is rejected; publish with PATCH /api/collections/:id/visibility.
              * @default private
              * @example private
              * @enum {string}
@@ -1255,6 +1672,7 @@ export type components = {
         readonly CreatedEvaluation: {
             readonly collectionId: string;
             readonly createdAt: string;
+            readonly error: string | null;
             readonly id: string;
             readonly notifyEmail: string | null;
             readonly numQuestions: number;
@@ -1263,14 +1681,23 @@ export type components = {
         };
         readonly CreateEvaluationRequest: {
             readonly goldenSet?: readonly {
+                readonly category?: string;
                 readonly expectedAnswer?: string;
+                /** @enum {string} */
+                readonly expectedBehavior?: "answer" | "abstain" | "clarify";
                 readonly expectedKeywords?: readonly string[];
+                readonly expectedSourceUrls?: readonly string[];
+                readonly id?: string;
+                readonly locale?: string;
                 readonly query: string;
+                /** @enum {string} */
+                readonly reviewStatus?: "pending_human_review" | "approved";
             }[];
             readonly inheritFromEvaluationId?: string;
             /** Format: email */
             readonly notifyEmail?: string;
             readonly numQuestions?: number;
+            /** @description Optional licensed-mode pipeline override; managed SaaS requests must omit it. */
             readonly ragConfigOverride?: {
                 readonly [key: string]: unknown;
             };
@@ -1314,6 +1741,7 @@ export type components = {
                     readonly zoom: number;
                 };
             };
+            readonly isActive?: boolean;
             readonly name: string;
             readonly variables?: readonly {
                 readonly defaultValue?: unknown;
@@ -1359,6 +1787,7 @@ export type components = {
             readonly status?: number;
         };
         readonly ErrorResponse: {
+            readonly code?: string;
             readonly error: string;
             readonly success: boolean;
         };
@@ -1410,6 +1839,9 @@ export type components = {
             readonly input?: {
                 readonly [key: string]: unknown;
             };
+            readonly maximumMilliCredits?: string;
+            /** Format: uuid */
+            readonly requestId?: string;
         };
         readonly Execution: {
             readonly completedAt: string | null;
@@ -1434,6 +1866,32 @@ export type components = {
             /** @enum {string} */
             readonly status: "pending" | "running" | "pending_approval" | "completed" | "failed" | "cancelled";
         };
+        readonly FaithfulnessConfigSchema: {
+            readonly enabled?: boolean;
+            readonly minSupport?: number;
+            /** @enum {string} */
+            readonly policy?: "report" | "qualify" | "remove" | "abstain";
+        };
+        readonly FeedbackError: {
+            readonly error: string;
+        };
+        readonly FeedbackRequest: {
+            /**
+             * @description Feedback message content
+             * @example The chat feature crashes when I send a long message.
+             */
+            readonly message: string;
+            /**
+             * @description Type of feedback
+             * @example bug
+             * @enum {string}
+             */
+            readonly type: "bug" | "feature" | "other";
+        };
+        readonly FeedbackSuccess: {
+            readonly message: string;
+            readonly success: boolean;
+        };
         readonly FilterDefinition: {
             readonly field: string;
             /** @enum {string} */
@@ -1444,10 +1902,7 @@ export type components = {
             };
         };
         readonly GenerateAgentRequest: {
-            /**
-             * Format: uuid
-             * @description Optional collection ID for RAG capabilities
-             */
+            /** @description Optional collection ID for RAG capabilities */
             readonly collectionId?: string | null;
             /** @example I need an assistant that helps customers with technical support for a SaaS product. It should be friendly, professional, and know how to troubleshoot common issues. */
             readonly description: string;
@@ -1457,21 +1912,25 @@ export type components = {
              * @example en
              */
             readonly language: string;
+            /** Format: uuid */
+            readonly requestId?: string;
         };
-        readonly GeneratedAgentConfig: {
-            readonly description: string | null;
-            readonly instructions: string | null;
+        readonly GeneratedAgentConfig: components["schemas"]["GeneratedBusinessAgentConfig"] & {
             readonly maxTokens: number;
             readonly model: string;
-            readonly name: string;
             readonly scoreThreshold: number;
+            readonly temperature: number;
+            readonly topK: number;
+        };
+        readonly GeneratedBusinessAgentConfig: {
+            readonly description: string | null;
+            readonly instructions: string | null;
+            readonly name: string;
             readonly suggestedTools?: readonly {
                 readonly description: string;
                 readonly name: string;
             }[];
             readonly systemPrompt: string;
-            readonly temperature: number;
-            readonly topK: number;
         };
         readonly HybridSearchConfig: {
             readonly alpha?: number;
@@ -1492,6 +1951,20 @@ export type components = {
             readonly source: string;
         };
         readonly IngestDatasetRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             /** @example coll_123 */
             readonly collectionId: string;
             /**
@@ -1505,7 +1978,7 @@ export type components = {
              */
             readonly datasetId: string;
             /**
-             * @description Enable multimodal embeddings (Jina CLIP v2). Extracts and indexes images from image columns. Requires Pro plan or higher.
+             * @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy. Extracts and indexes images from image columns.
              * @example false
              */
             readonly enableMultimodal?: boolean;
@@ -1521,6 +1994,20 @@ export type components = {
             readonly split?: string;
         };
         readonly IngestDocumentRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             /** @example coll_123 */
             readonly collectionId: string;
             /** @example Document content here... */
@@ -1538,10 +2025,24 @@ export type components = {
             readonly success: boolean;
         };
         readonly IngestUrlRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             /** @example coll_123 */
             readonly collectionId: string;
             /**
-             * @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher.
+             * @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy.
              * @example false
              */
             readonly enableMultimodal?: boolean;
@@ -1604,18 +2105,37 @@ export type components = {
             readonly description: string | null;
             readonly documentCount: number;
             readonly id: string;
+            /** Format: date-time */
+            readonly lastSyncedAt: string | null;
             readonly name: string;
             readonly publisher: components["schemas"]["PublicCollectionPublisher"];
             /** @enum {string|null} */
             readonly requiredPlanId: "pro" | "scale" | "enterprise" | null;
+            readonly servedSource?: {
+                readonly activatedAt: string | null;
+                /** @enum {boolean} */
+                readonly officialCorpusQualified: false;
+                readonly sourceRevision: string | null;
+                readonly sourceTimestamp: string | null;
+                /** @enum {string} */
+                readonly status: "verified_receipt" | "unknown";
+            };
             readonly slug: string;
+            readonly sourceDataset: string | null;
             /** Format: date-time */
             readonly updatedAt: string;
+        };
+        readonly RAGCacheConfigSchema: {
+            readonly enabled?: boolean;
+            readonly maxSize?: number;
+            readonly ttlSeconds?: number;
         };
         readonly RAGConfigErrorResponse: {
             readonly error: string;
         };
         readonly RAGConfigInput: {
+            readonly cache?: components["schemas"]["RAGCacheConfigSchema"];
+            readonly faithfulness?: components["schemas"]["FaithfulnessConfigSchema"];
             readonly features?: components["schemas"]["RAGFeatures"];
             readonly hybridSearch?: components["schemas"]["HybridSearchConfig"];
             readonly llm?: components["schemas"]["LLMConfigSchema"];
@@ -1623,6 +2143,17 @@ export type components = {
             readonly retrieval?: components["schemas"]["RetrievalConfig"];
         };
         readonly RAGConfigResponse: {
+            readonly cache: {
+                readonly enabled: boolean;
+                readonly maxSize: number;
+                readonly ttlSeconds: number;
+            };
+            readonly faithfulness: {
+                readonly enabled: boolean;
+                readonly minSupport: number;
+                /** @enum {string} */
+                readonly policy: "report" | "qualify" | "remove" | "abstain";
+            };
             readonly features: {
                 readonly citations: boolean;
                 readonly contextualRetrieval: boolean;
@@ -1737,8 +2268,22 @@ export type components = {
             readonly sourceType: string;
         };
         readonly StreamingCrawlRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             readonly collectionId: string;
-            /** @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher. */
+            /** @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy. */
             readonly enableMultimodal?: boolean;
             readonly maxDepth?: number;
             readonly maxPages?: number;
@@ -1746,6 +2291,20 @@ export type components = {
             readonly url: string;
         };
         readonly StreamingDatasetRequest: {
+            readonly chunkingConfiguration?: {
+                /** @default false */
+                readonly includeBreadcrumb: boolean;
+                /** @default 512 */
+                readonly maxTokens: number;
+                /** @default 80 */
+                readonly minTokens: number;
+                readonly overlapChars?: number;
+                /**
+                 * @default default
+                 * @enum {string}
+                 */
+                readonly strategy: "default" | "legal-article" | "regulatory-section" | "csv-row-grouped" | "email-thread" | "markdown-heading";
+            };
             readonly collectionId: string;
             readonly config?: string;
             readonly datasetId: string;
@@ -1753,6 +2312,7 @@ export type components = {
             readonly split?: string;
         };
         readonly StreamingErrorResponse: {
+            readonly code?: string;
             readonly error: string;
             readonly success: boolean;
         };
@@ -1794,8 +2354,19 @@ export type components = {
                 /** @default 0 */
                 readonly priority: number;
                 /** @enum {string} */
-                readonly type: "collection" | "data_connector";
+                readonly type: "collection";
             }[];
+            /** Format: uuid */
+            readonly runtimeConnectionId?: string | null;
+            /** @enum {string} */
+            readonly runtimeKind?: "byok_api";
+            readonly runtimePreferences?: {
+                readonly mode?: string | null;
+                readonly model?: string | null;
+                readonly reasoningLevel?: string | null;
+            } | null;
+            /** Format: uuid */
+            readonly runtimeProfileId?: string | null;
             readonly scoreThreshold?: number;
             readonly skillIds?: readonly string[];
             readonly subAgentIds?: readonly string[] | null;
@@ -1878,6 +2449,7 @@ export type components = {
         readonly ValidationResult: {
             readonly errors: readonly {
                 readonly edgeId?: string;
+                readonly label?: string;
                 readonly message: string;
                 readonly nodeId?: string;
                 readonly type: string;
@@ -2238,6 +2810,15 @@ export interface operations {
                     readonly "text/event-stream": string;
                 };
             };
+            /** @description Owner thread belongs to another actor */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Agent not found */
             readonly 404: {
                 headers: {
@@ -2268,7 +2849,7 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["GeneratedAgentConfig"];
+                    readonly "application/json": components["schemas"]["GeneratedBusinessAgentConfig"] | components["schemas"]["GeneratedAgentConfig"];
                 };
             };
             /** @description Invalid request */
@@ -2277,7 +2858,37 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["Error"];
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
+                };
+            };
+            /** @description Insufficient credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
+                };
+            };
+            /** @description Request ID conflict or execution already dispatched */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
                 };
             };
             /** @description Generation failed */
@@ -2286,7 +2897,37 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["Error"];
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
+                };
+            };
+            /** @description LLM returned invalid JSON */
+            readonly 502: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
+                };
+            };
+            /** @description Managed generation is unavailable */
+            readonly 503: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly code?: string;
+                        readonly error: string;
+                        readonly status?: number;
+                    };
                 };
             };
         };
@@ -2443,8 +3084,44 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ChatResponse"];
                 };
             };
+            /** @description Invalid request body */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatValidationError"];
+                };
+            };
+            /** @description Credits unavailable or organization subscription required before execution/stream admission */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatErrorResponse"];
+                };
+            };
+            /** @description Collection access denied */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatErrorResponse"];
+                };
+            };
             /** @description Collection not found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatErrorResponse"];
+                };
+            };
+            /** @description Credits are held by another in-flight request */
+            readonly 409: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -2476,12 +3153,30 @@ export interface operations {
             };
         };
         readonly responses: {
-            /** @description SSE stream */
+            /** @description SSE stream; admission failures other than a zero credit balance emit an error event with a public business code, including SUBSCRIPTION_REQUIRED */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Invalid request body */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatValidationError"];
+                };
+            };
+            /** @description Credits unavailable before stream admission */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatErrorResponse"];
+                };
             };
             /** @description Collection not found */
             readonly 404: {
@@ -2507,12 +3202,30 @@ export interface operations {
             };
         };
         readonly responses: {
-            /** @description SSE stream with stage, enhancement, sources, chunk, and metrics events */
+            /** @description SSE stream with stage, enhancement, sources, chunk, metrics and error events; admission failures other than a zero credit balance expose a public business code, including SUBSCRIPTION_REQUIRED */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Invalid request body */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatValidationError"];
+                };
+            };
+            /** @description Credits unavailable before stream admission */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ChatErrorResponse"];
+                };
             };
             /** @description Collection not found */
             readonly 404: {
@@ -2528,9 +3241,9 @@ export interface operations {
     readonly "collections.list": {
         readonly parameters: {
             readonly query?: {
-                /** @description Set to 'true' to include public collections (Pro+ plans only) */
+                /** @description Set to 'true' to include public collections */
                 readonly includePublic?: string;
-                /** @description Set to 'true' to include shared collections (Pro+ plans only) */
+                /** @description Set to 'true' to include shared collections */
                 readonly includeShared?: string;
             };
             readonly header?: never;
@@ -2572,7 +3285,7 @@ export interface operations {
                     readonly "application/json": components["schemas"]["Collection"];
                 };
             };
-            /** @description Invalid request or collection already exists */
+            /** @description Invalid request, duplicate name, or public/shared create (use PATCH /api/collections/:id/visibility) */
             readonly 400: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -2608,6 +3321,50 @@ export interface operations {
                 };
             };
             /** @description Invalid configuration */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RAGConfigErrorResponse"];
+                };
+            };
+            /** @description Collection not found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RAGConfigErrorResponse"];
+                };
+            };
+        };
+    };
+    readonly "ragExperiments.runAbTest": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly collectionId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ABTestConfig"];
+            };
+        };
+        readonly responses: {
+            /** @description A/B test results */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ABTestResult"];
+                };
+            };
+            /** @description Invalid test configuration */
             readonly 400: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -2692,6 +3449,24 @@ export interface operations {
             };
             /** @description Collection not found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Deletion is blocked: unresolved write, active fence, managed collection (MANAGED_COLLECTION_READ_ONLY), or platform-linked collection (PLATFORM_COLLECTION_DELETE_FORBIDDEN) — superadmin en session interactive uniquement */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Collection storage or vector deletion could not be verified */
+            readonly 503: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -3060,110 +3835,6 @@ export interface operations {
             };
         };
     };
-    readonly "dataChat.send": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly requestBody?: {
-            readonly content: {
-                readonly "application/json": {
-                    readonly [key: string]: unknown;
-                };
-            };
-        };
-        readonly responses: {
-            /** @description Successful response */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Invalid request */
-            readonly 400: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly code?: string;
-                        readonly error: string;
-                    };
-                };
-            };
-            /** @description Forbidden, policy denied, or rollout flag disabled */
-            readonly 403: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly code?: string;
-                        readonly error: string;
-                    };
-                };
-            };
-        };
-    };
-    readonly "dataChat.precheck": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly requestBody?: {
-            readonly content: {
-                readonly "application/json": {
-                    readonly [key: string]: unknown;
-                };
-            };
-        };
-        readonly responses: {
-            /** @description Successful response */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Invalid request */
-            readonly 400: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly code?: string;
-                        readonly error: string;
-                    };
-                };
-            };
-            /** @description Forbidden, policy denied, or rollout flag disabled */
-            readonly 403: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": {
-                        readonly code?: string;
-                        readonly error: string;
-                    };
-                };
-            };
-        };
-    };
     readonly "evaluations.get": {
         readonly parameters: {
             readonly query?: never;
@@ -3191,6 +3862,48 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["EvaluationDetailError"];
+                };
+            };
+        };
+    };
+    readonly "feedback.submit": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["FeedbackRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Feedback submitted successfully */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["FeedbackSuccess"];
+                };
+            };
+            /** @description Invalid request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["FeedbackError"];
+                };
+            };
+            /** @description Failed to send feedback */
+            readonly 500: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["FeedbackError"];
                 };
             };
         };
@@ -3268,6 +3981,42 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingErrorResponse"];
                 };
             };
+            /** @description Insufficient execution credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Subscription required or operation forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Idempotency key reused with different crawl parameters */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Import exceeds available storage quota */
+            readonly 413: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
             /** @description Crawl failed */
             readonly 500: {
                 headers: {
@@ -3301,7 +4050,25 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingIngestResponse"];
                 };
             };
-            /** @description Multimodal feature requires Pro plan */
+            /** @description Invalid credit ceiling */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Insufficient execution credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Organization subscription required or multimodal feature disabled by administrator policy */
             readonly 403: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -3312,6 +4079,24 @@ export interface operations {
             };
             /** @description Collection not found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Idempotency key reused with different crawl parameters */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Import exceeds available storage quota */
+            readonly 413: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -3394,6 +4179,33 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingIngestResponse"];
                 };
             };
+            /** @description Invalid credit ceiling */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Insufficient execution credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Active subscription required */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
             /** @description Collection not found */
             readonly 404: {
                 headers: {
@@ -3403,8 +4215,35 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingErrorResponse"];
                 };
             };
+            /** @description Idempotency key reused with different dataset parameters */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Dataset output exceeds available storage quota */
+            readonly 413: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
             /** @description Internal server error */
             readonly 500: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Billing admission is unavailable */
+            readonly 503: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -3434,6 +4273,15 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["DiscoverResponse"];
+                };
+            };
+            /** @description Subscription required or operation forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
                 };
             };
             /** @description Discovery failed */
@@ -3499,9 +4347,13 @@ export interface operations {
         readonly requestBody?: {
             readonly content: {
                 readonly "multipart/form-data": {
+                    /** @description JSON access policy: inherit or restricted with active business role IDs. */
+                    readonly accessPolicy?: string;
+                    /** @description JSON chunking configuration; unknown or unsupported fields are rejected. */
+                    readonly chunkingConfiguration?: string;
                     readonly collectionId: string;
                     /**
-                     * @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher. Pass 'true' to enable.
+                     * @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy. Pass 'true' to enable.
                      * @example true
                      */
                     readonly enableMultimodal?: string;
@@ -3512,6 +4364,21 @@ export interface operations {
                      * @example documents
                      */
                     readonly mode?: string;
+                    /**
+                     * @description Comma-separated OCR languages. Supported in the runtime image: fr,en. Omit for automatic detection.
+                     * @example fr,en
+                     */
+                    readonly ocrLanguages?: string;
+                    /**
+                     * @description OCR policy: auto (default), disabled, or force full-page OCR.
+                     * @enum {string}
+                     */
+                    readonly ocrMode?: "auto" | "disabled" | "force";
+                    /**
+                     * @description Quality review threshold between 0 and 1.
+                     * @example 0.55
+                     */
+                    readonly ocrReviewThreshold?: string;
                 };
             };
         };
@@ -3534,6 +4401,15 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description Subscription required or operation forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Collection not found */
             readonly 404: {
                 headers: {
@@ -3543,8 +4419,35 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description File exceeds the maximum upload size */
+            readonly 413: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unsupported file type or PDF requires the separate OCR pipeline */
+            readonly 422: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Ingestion failed */
             readonly 500: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Synchronous embedding deadline reached */
+            readonly 504: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -3564,14 +4467,27 @@ export interface operations {
         readonly requestBody?: {
             readonly content: {
                 readonly "multipart/form-data": {
+                    /** @description JSON access policy: inherit or restricted with active business role IDs. */
+                    readonly accessPolicy?: string;
+                    /** @description JSON chunking configuration; unknown or unsupported fields are rejected. */
+                    readonly chunkingConfiguration?: string;
                     readonly collectionId: string;
                     /**
-                     * @description Enable multimodal embeddings (Jina CLIP v2). Requires Pro plan or higher. Pass 'true' to enable.
+                     * @description Enable multimodal embeddings (Jina CLIP v2) when allowed by administrator policy. Pass 'true' to enable.
                      * @example true
                      */
                     readonly enableMultimodal?: string;
                     /** Format: binary */
                     readonly file?: string;
+                    /**
+                     * @description Comma-separated OCR languages supported by the runtime image: fr,en.
+                     * @example fr,en
+                     */
+                    readonly ocrLanguages?: string;
+                    /** @enum {string} */
+                    readonly ocrMode?: "auto" | "disabled" | "force";
+                    /** @example 0.55 */
+                    readonly ocrReviewThreshold?: string;
                 };
             };
         };
@@ -3594,7 +4510,16 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingErrorResponse"];
                 };
             };
-            /** @description Multimodal feature requires Pro plan */
+            /** @description Insufficient execution credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Organization subscription required or multimodal feature disabled by administrator policy */
             readonly 403: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -3612,6 +4537,33 @@ export interface operations {
                     readonly "application/json": components["schemas"]["StreamingErrorResponse"];
                 };
             };
+            /** @description Idempotency key reused with different content */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description File exceeds the maximum upload size or available storage quota */
+            readonly 413: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Unsupported file type */
+            readonly 422: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
             /** @description Internal server error */
             readonly 500: {
                 headers: {
@@ -3619,6 +4571,158 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+            /** @description Billing admission is unavailable */
+            readonly 503: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["StreamingErrorResponse"];
+                };
+            };
+        };
+    };
+    readonly "ingestion.listJobs": {
+        readonly parameters: {
+            readonly query: {
+                readonly collectionId: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Collection ingestion jobs */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly jobs: readonly {
+                            readonly [key: string]: unknown;
+                        }[];
+                        /** @enum {boolean} */
+                        readonly success: true;
+                    };
+                };
+            };
+            /** @description Missing collection */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly error: string;
+                        /** @enum {boolean} */
+                        readonly success: false;
+                    };
+                };
+            };
+        };
+    };
+    readonly "ingestion.getJob": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly jobId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Current job state */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly job: {
+                            readonly [key: string]: unknown;
+                        };
+                        /** @enum {boolean} */
+                        readonly success: true;
+                    };
+                };
+            };
+            /** @description Job not found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly error: string;
+                        /** @enum {boolean} */
+                        readonly success: false;
+                    };
+                };
+            };
+        };
+    };
+    readonly "ingestion.cancelJob": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly jobId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Cancellation requested */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly message: string;
+                        /** @enum {boolean} */
+                        readonly success: true;
+                    };
+                };
+            };
+            /** @description Job not found or already terminal */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly error: string;
+                        /** @enum {boolean} */
+                        readonly success: false;
+                    };
+                };
+            };
+        };
+    };
+    readonly "ingestion.streamJob": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly jobId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Ingestion job event stream */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "text/event-stream": string;
                 };
             };
         };
@@ -3656,6 +4760,15 @@ export interface operations {
             };
             /** @description Collection not found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description URL is not a public address */
+            readonly 422: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -3726,6 +4839,144 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["PublicCollectionError"];
+                };
+            };
+        };
+    };
+    readonly "observability.listTraces": {
+        readonly parameters: {
+            readonly query?: {
+                readonly accessOutcome?: "allowed" | "denied" | "plan_gate" | "read_only";
+                readonly accessTier?: "owner" | "shared" | "public-free" | "public-gated" | "denied";
+                readonly collectionId?: string;
+                readonly collectionVisibility?: "private" | "shared" | "public" | "unknown";
+                readonly endDate?: string;
+                readonly limit?: number;
+                readonly page?: number;
+                readonly parentOnly?: boolean | null;
+                readonly search?: string;
+                readonly sessionId?: string;
+                readonly startDate?: string;
+                readonly status?: "success" | "error";
+                readonly surface?: "chat" | "agent" | "workflow" | "mcp" | "sdk" | "widget" | "public" | "ingestion" | "evaluation" | "unknown";
+                readonly tags?: string | readonly string[];
+                readonly type?: "llm" | "agent" | "retrieval" | "rerank" | "tool" | "judge" | "workflow" | "ingestion" | "ab_test";
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Paginated traces */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    readonly "observability.getTrace": {
+        readonly parameters: {
+            readonly query?: {
+                readonly includeChildren?: boolean | null;
+                readonly maxDepth?: number;
+            };
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Trace and optional children */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly trace?: unknown;
+                    };
+                };
+            };
+            /** @description Trace not found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly error: string;
+                    };
+                };
+            };
+        };
+    };
+    readonly "observability.exportTraces": {
+        readonly parameters: {
+            readonly query: {
+                readonly accessOutcome?: "allowed" | "denied" | "plan_gate" | "read_only";
+                readonly accessTier?: "owner" | "shared" | "public-free" | "public-gated" | "denied";
+                readonly collectionId?: string;
+                readonly collectionVisibility?: "private" | "shared" | "public" | "unknown";
+                readonly endDate: string;
+                readonly format: "csv" | "json";
+                readonly includeInputOutput?: boolean | null;
+                readonly search?: string;
+                readonly startDate: string;
+                readonly status?: "success" | "error";
+                readonly surface?: "chat" | "agent" | "workflow" | "mcp" | "sdk" | "widget" | "public" | "ingestion" | "evaluation" | "unknown";
+                readonly type?: "llm" | "agent" | "retrieval" | "rerank" | "tool" | "judge" | "workflow" | "ingestion" | "ab_test";
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description CSV or JSON trace export */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": unknown;
+                    readonly "text/csv": string;
+                };
+            };
+        };
+    };
+    readonly "observability.getTraceMetrics": {
+        readonly parameters: {
+            readonly query: {
+                readonly collectionId?: string;
+                readonly endDate: string;
+                readonly granularity?: "day" | "week" | "month";
+                readonly startDate: string;
+                readonly type?: "llm" | "agent" | "retrieval" | "rerank" | "tool" | "judge" | "workflow" | "ingestion" | "ab_test";
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Aggregated trace metrics */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -3925,6 +5176,49 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ExecutionResult"];
                 };
             };
+            /** @description Budget reserved and execution admitted */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": {
+                        readonly chargedMilliCredits: string | null;
+                        readonly executionId: string;
+                        readonly maximumMilliCredits: string;
+                        readonly output?: unknown;
+                        readonly reconciliationRequired: boolean;
+                        readonly status: string;
+                    };
+                };
+            };
+            /** @description Invalid request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Insufficient credits */
+            readonly 402: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Workflow not found */
             readonly 404: {
                 headers: {
@@ -3934,8 +5228,26 @@ export interface operations {
                     readonly "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Execution failed */
             readonly 500: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Temporarily unavailable */
+            readonly 503: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

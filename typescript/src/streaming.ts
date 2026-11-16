@@ -6,6 +6,8 @@ import type {
   AgentChatStreamEvent,
   ProgressiveStreamEvent,
   DeepResearchStreamEvent,
+  IngestionJob,
+  IngestionJobStreamEvent,
 } from "./types.js";
 import { ProtocolError } from "./errors.js";
 
@@ -31,6 +33,33 @@ export class DeepResearchStream implements AsyncIterable<DeepResearchStreamEvent
       };
       yield mapped;
       if (mapped.type === "done") break;
+    }
+  }
+}
+
+const TERMINAL_INGESTION_STATES = new Set(["completed", "failed", "cancelled"]);
+
+export class IngestionJobStream implements AsyncIterable<IngestionJobStreamEvent> {
+  private consumed = false;
+
+  constructor(private readonly response: Response | Promise<Response>) {}
+
+  async *[Symbol.asyncIterator](): AsyncIterableIterator<IngestionJobStreamEvent> {
+    if (this.consumed) throw new Error("Stream has already been consumed");
+    this.consumed = true;
+    for await (const event of parseSSE(await this.response)) {
+      const parsed = tryParseJSON<unknown>(event.data) ?? event.data;
+      const mapped: IngestionJobStreamEvent = { type: event.event, data: parsed };
+      yield mapped;
+      if (
+        event.event === "error" ||
+        (event.event === "state" &&
+          typeof parsed === "object" &&
+          parsed !== null &&
+          TERMINAL_INGESTION_STATES.has((parsed as IngestionJob).status))
+      ) {
+        break;
+      }
     }
   }
 }

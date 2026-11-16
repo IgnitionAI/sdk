@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/@ignitionai/sdk.svg)](./LICENSE)
 [![types](https://img.shields.io/npm/types/@ignitionai/sdk.svg)](https://www.npmjs.com/package/@ignitionai/sdk)
 
-TypeScript SDK for your licensed or self-hosted IgnitionRAG deployment. Zero dependencies, compatible with Node.js 20+, Bun, edge runtimes and browsers. API keys stay in trusted server runtimes; browsers use delegated user tokens.
+TypeScript SDK for managed SaaS, licensed, and self-hosted IgnitionRAG deployments. Zero dependencies, compatible with Node.js 20+, Bun, edge runtimes and browsers. API keys stay in trusted server runtimes; browsers use delegated user tokens.
 
 ## Installation
 
@@ -15,8 +15,10 @@ npm install @ignitionai/sdk@next
 bun add @ignitionai/sdk@next
 ```
 
-The `0.3.0-rc.3` release candidate is published under the `next` tag. The
-`latest` tag remains on the stable `0.2.x` line until the official promotion.
+This source tree prepares `1.0.0` for contract `2026.11`; publication is a
+separate reviewed release step. `ingest.file` and `ingest.url` are breaking
+changes from `0.3.0-rc.4`: they return `AsyncIngestResult`.
+The `latest` tag remains on the stable `0.2.x` line until the official promotion.
 
 ## Setup
 
@@ -71,9 +73,21 @@ const deployment = await client.compatibility.assertCompatible();
 console.log(deployment.contractVersion, deployment.capabilities);
 ```
 
-The SDK caches metadata briefly and fails explicitly on an unsupported version or a changed digest under the same contract version.
+The SDK caches metadata briefly and fails explicitly on an unsupported version
+or a changed digest under its current contract version. This client recognizes
+deployments advertising `2026.11`, `2026.10` or `2026.09`. This is
+new-client compatibility with older deployments: SDKs that do not recognize
+`2026.11` must be upgraded before connecting to a `2026.11` deployment.
+The current revision requires the exact generated shape digest. Previous-revision
+admission checks the version and advertised capabilities; it does not compare
+the previous deployment digest with the current revision digest.
+The prospective compatibility policy starts with `2026.09`; it does not restore
+capabilities removed before that baseline.
 
 ## RAG Chat
+
+The direct `client.chat` methods below are the licensed/self-hosted contract.
+Managed SaaS callers should use `client.chat.managed`, documented below.
 
 ### Non-streaming
 
@@ -195,6 +209,10 @@ await client.deepResearch.cancel("agent_xxxx");
 
 ## Agents
 
+The direct agent methods below retain the licensed/self-hosted configuration
+contract, including deployment-owned model and MCP settings. Managed SaaS uses
+the separate `client.agents.managed` and `client.agentChat.managed` contracts.
+
 ```typescript
 // List
 const agents = await client.agents.list();
@@ -251,6 +269,12 @@ const run = await client.workflows.execute("workflow_xxxx", {
   input: { question: "Summarize the latest customer feedback" },
 });
 
+// SaaS: the server derives the credit envelope from the workspace balance.
+const managedRun = await client.workflows.executeManaged("workflow_xxxx", {
+  requestId: crypto.randomUUID(),
+  input: { question: "Summarize the latest customer feedback" },
+});
+
 const execution = await client.workflows.getExecution(run.executionId);
 console.log(execution.status, execution.output);
 
@@ -266,9 +290,53 @@ if (execution.status === "running") {
 Aborting the HTTP request does not cancel a remote workflow execution. Use
 `cancelExecution()` when the execution itself must stop.
 
-## Data Chat
+`execute()` remains the licensed deployment contract. SaaS callers must use
+`executeManaged()`; the server resolves providers and tariffs and rejects
+client-supplied model or secret fields.
 
-Query collections and external data connectors through the same governed
+## Widgets
+
+The direct widget methods retain the licensed deployment contract. Managed SaaS
+uses `client.widgets.managed` and omits provider selection and secret fields.
+
+Manage embeddable collection, agent, and workflow widgets through the same
+authenticated client.
+
+```typescript
+const created = await client.widgets.create({
+  name: "Support",
+  type: "agent",
+  agentId: "agent_xxxx",
+  allowedDomains: ["https://app.example.com"],
+  position: "bottom-right",
+});
+
+console.log(created.widgetKey, created.embedCode);
+
+await client.widgets.update(created.widget.id, {
+  welcomeMessage: "How can I help?",
+  theme: { preset: "dark", primaryColor: "#6d28d9" },
+});
+
+const analytics = await client.widgets.analytics(created.widget.id, "30d");
+console.log(analytics.totalSessions, analytics.resolutionRate);
+
+const rotated = await client.widgets.regenerateKey(created.widget.id);
+console.log(rotated.embedCode);
+```
+
+The widget key is returned only at creation or rotation time. Store it in the
+integrating application; do not confuse it with the server-side API key.
+
+## Data Chat (legacy deployments only)
+
+`client.dataChat` is deprecated and retained for older deployments whose
+`/api/meta` advertises `data_connectors`. Contract `2026.09` does not expose Data
+Chat. Both helpers check that capability first and raise
+`UnsupportedCapabilityError` before sending a request to a retired route when
+it is absent. They do not redirect the query to another service.
+
+On a compatible legacy deployment, query collections and external data connectors through the same governed
 request. Run the precheck first when you want to surface incompatible or
 unavailable sources before execution.
 
@@ -312,6 +380,14 @@ const readable = await client.collections.list({
   includeShared: true,
   includePublic: true,
 });
+
+// Browse the dedicated public catalog and resolve one item by slug
+const publicCatalog = await client.collections.listPublic({
+  minTier: "pro",
+  query: "labor",
+});
+const publicDataset = await client.collections.getPublic("code-du-travail");
+console.log(publicDataset.sampleQueries);
 
 for (const collection of readable) {
   if (collection.isReadOnly) {
@@ -375,40 +451,74 @@ try {
 
 ## Ingestion
 
+On managed SaaS, members use the metered async routes. `ingest.file`,
+`ingest.url`, and `ingest.document` queue a durable job and return
+`AsyncIngestResult`. Wait with `getJob` or `streamJob`.
+
 ```typescript
-// Ingest from URL
-await client.ingest.url({
+// Single URL (POST /api/ingest/url/async)
+const fromUrl = await client.ingest.url({
   collectionId: "coll_xxxx",
   url: "https://docs.example.com/guide",
 });
+await client.ingest.getJob(fromUrl.jobId);
 
-// Ingest raw text
-await client.ingest.document({
+// Raw text as a file (POST /api/ingest/file/async)
+const fromText = await client.ingest.document({
   collectionId: "coll_xxxx",
   content: "Your document content...",
   filename: "guide.txt",
 });
+await client.ingest.getJob(fromText.jobId);
 
-// Upload file
-await client.ingest.file({
+// Upload file (durable job; SaaS rejects sync /ingest/file)
+const started = await client.ingest.file({
   collectionId: "coll_xxxx",
   file: new File([buffer], "report.pdf", { type: "application/pdf" }),
+  enableMultimodal: true,
 });
+await client.ingest.getJob(started.jobId);
+```
 
-// Crawl website
-await client.ingest.crawl({
+Synchronous site crawl, dataset import, and discovery remain license-only.
+On SaaS they throw `OfferingUnavailableError` (`OFFERING_UNAVAILABLE`) instead
+of a 503 `AI_TEMPORARILY_UNAVAILABLE` outage. Members should call the async
+variants:
+
+```typescript
+await client.ingest.crawlAsync({
   collectionId: "coll_xxxx",
   url: "https://docs.example.com",
   maxPages: 50,
 });
-
-// Import HuggingFace dataset
-await client.ingest.dataset({
+await client.ingest.datasetAsync({
   collectionId: "coll_xxxx",
-  source: "huggingface",
   datasetId: "squad",
   split: "train",
-  maxRows: 1000,
+  limit: 1000,
+});
+```
+
+Licensed and self-hosted deployments still admit `ingest.crawl`,
+`ingest.dataset`, and `ingest.discover`. For long ingestions, the asynchronous
+variants return a `jobId` immediately; transport cancellation does not cancel
+the remote job.
+
+```typescript
+const discovered = await client.ingest.discover({
+  url: "https://docs.example.com",
+  maxPages: 500,
+});
+
+const job = await client.ingest.crawlSelectedAsync({
+  collectionId: "coll_xxxx",
+  urls: discovered.pages.map((page) => page.url),
+});
+console.log(job.jobId);
+
+await client.ingest.fileAsync({
+  collectionId: "coll_xxxx",
+  file: new File([buffer], "manual.pdf", { type: "application/pdf" }),
 });
 ```
 
@@ -595,6 +705,82 @@ return toAIStreamResponse(stream);
 |---|---|---|
 | `IGNITION_API_KEY` | API key (starts with `ign_`) | Yes (or pass in constructor) |
 | `IGNITION_BASE_URL` | Your deployment URL (pass it as `baseURL`) | Yes |
+
+### Managed SaaS chat
+
+Use the explicit `managed` namespace for SaaS chat. It accepts an optional
+`maximumMilliCredits` ceiling as a positive integer string (at most 16 digits);
+`"1000"` means a ceiling of one credit, not a fixed charge. These methods reject
+model and LLM configuration overrides before sending a request, with or without
+a budget. The server selects the model and applies workspace policy.
+
+```ts
+await client.chat.managed.send({
+  collectionId: "collection-id",
+  query: "Summarize the onboarding procedure.",
+  maximumMilliCredits: "1000",
+});
+
+const stream = client.chat.managed.stream({
+  collectionId: "collection-id",
+  query: "Summarize the onboarding procedure.",
+});
+for await (const event of stream) {
+  if (event.type === "chunk") process.stdout.write(event.content);
+}
+```
+
+Managed response DTOs omit model/provider configuration and internal usage
+metadata. Existing `client.chat.send`, `stream`, and `streamProgressive` methods
+remain the licensed/self-hosted compatibility contract.
+
+### Managed SaaS agents
+
+Use the managed agent namespace for agent resources and the durable metered chat
+admission API. Requests require an idempotency `requestId`, session, and server
+credit ceiling. Poll or cancel the returned execution explicitly; a streaming
+licensed agent-chat call is not the managed admission contract.
+
+```ts
+const agent = await client.agents.managed.create({
+  name: "Support assistant",
+  collectionId: "00000000-0000-4000-8000-000000000001",
+  systemPrompt: "Answer from the approved support content.",
+  enabledBuiltinTools: ["web_search"],
+});
+
+const execution = await client.agentChat.managed.start(agent.id, {
+  requestId: crypto.randomUUID(),
+  sessionId: "support-session-1",
+  query: "How do I update my billing details?",
+  maximumMilliCredits: "1000",
+});
+const current = await client.agentChat.managed.get(agent.id, execution.executionId);
+```
+
+Managed agent contracts accept business prompts and resource references but
+omit provider, model, MCP credential, and runtime fields. The existing
+`client.agents` and `client.agentChat.stream` methods remain available for
+licensed/self-hosted deployments.
+
+### Managed SaaS widgets
+
+```ts
+const created = await client.widgets.managed.create({
+  name: "Support widget",
+  type: "agent",
+  agentId: "agent-id",
+  allowedDomains: ["https://app.example.com"],
+  theme: { preset: "dark", primaryColor: "#6d28d9" },
+});
+console.log(created.widgetKey, created.embedCode);
+```
+
+Managed widget inputs allow presentation and supported business settings only.
+The response omits provider selection and secret escalation targets. The
+one-time widget key is returned at creation or rotation so the embed can be
+installed. Existing `client.widgets` methods preserve the licensed deployment
+contract.
 
 ## Requirements
 

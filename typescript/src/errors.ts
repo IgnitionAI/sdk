@@ -26,6 +26,13 @@ export class ProtocolError extends IgnitionAIError {
   }
 }
 
+export class UnsupportedCapabilityError extends ProtocolError {
+  constructor(readonly capability: string, readonly contractVersion: string) {
+    super(`Deployment contract ${contractVersion} does not support capability '${capability}'. Use a deployment that advertises this capability.`);
+    this.name = "UnsupportedCapabilityError";
+  }
+}
+
 export class UnsupportedContractVersionError extends ProtocolError {
   constructor(
     readonly receivedVersion: string,
@@ -183,6 +190,25 @@ export class InternalServerError extends APIError {
     super(status, message, headers, "internal_server_error");
     this.name = "InternalServerError";
   }
+}
+
+export class OfferingUnavailableError extends APIError {
+  constructor(message: string, headers: Record<string, string>, status = 503) {
+    super(status, message, headers, "OFFERING_UNAVAILABLE");
+    this.name = "OfferingUnavailableError";
+  }
+}
+
+export function isAiTemporarilyUnavailable(error: APIError): boolean {
+  return error.status === 503 && error.message === "AI_TEMPORARILY_UNAVAILABLE";
+}
+
+export function offeringUnavailable(operation: string, error: APIError): OfferingUnavailableError {
+  return new OfferingUnavailableError(
+    `${operation} is not available on this offering.`,
+    error.headers,
+    error.status,
+  );
 }
 
 export class APIConnectionError extends IgnitionAIError {

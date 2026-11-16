@@ -1,3 +1,5 @@
+import type { components as PublicApiComponents, operations as PublicApiOperations } from "./generated/public-api.js";
+
 // ─── Client ────────────────────────────────────────────────────────
 
 export interface ClientOptions {
@@ -16,6 +18,55 @@ export interface ClientOptions {
   /** Default headers added to every request */
   defaultHeaders?: Record<string, string>;
 }
+
+export type FeedbackParams = {
+  type: "bug" | "feature" | "other";
+  message: string;
+};
+
+export type FeedbackResult = {
+  success: boolean;
+  message: string;
+};
+
+export type TraceType = "llm" | "agent" | "retrieval" | "rerank" | "tool" | "judge" | "workflow" | "ingestion" | "ab_test";
+export type TraceStatus = "success" | "error";
+export type Trace = Record<string, unknown> & { id: string; type: TraceType; status: TraceStatus };
+export type TraceListParams = {
+  page?: number; limit?: number; type?: TraceType; status?: TraceStatus;
+  collectionId?: string; sessionId?: string; search?: string; tags?: string[];
+  startDate?: string; endDate?: string; parentOnly?: boolean;
+};
+export type TraceListResponse = { traces: Trace[]; pagination: Record<string, unknown> };
+export type TraceMetricsParams = {
+  startDate: string; endDate: string; collectionId?: string; type?: TraceType;
+  granularity?: "day" | "week" | "month";
+};
+export type TraceMetrics = Record<string, unknown>;
+export type TraceExportParams = TraceMetricsParams & {
+  format: "csv" | "json"; status?: TraceStatus; includeInputOutput?: boolean;
+};
+export type TraceExport = { filename: string; contentType: string; content: string };
+
+export type RagConfigCandidate = Record<string, unknown>;
+export type RagAbTestParams = {
+  configA: RagConfigCandidate;
+  configB: RagConfigCandidate;
+  testQuery: string;
+  evaluateQuality?: boolean;
+};
+export type RagAbTestResult = {
+  configA: Record<string, unknown>;
+  configB: Record<string, unknown>;
+  comparison: {
+    speedDifferenceMs: number;
+    speedWinner: "A" | "B" | "tie";
+    resultOverlap: number;
+    recommendation: string;
+    qualityWinner?: "A" | "B" | "tie";
+    [key: string]: unknown;
+  };
+};
 
 // ─── Workflows ────────────────────────────────────────────────────
 
@@ -78,6 +129,7 @@ export type WorkflowListItem = Pick<
 
 export type WorkflowCreateParams = {
   name: string;
+  isActive?: PublicApiComponents["schemas"]["CreateWorkflowRequest"]["isActive"];
   description?: string;
   graph?: WorkflowGraph;
   variables?: WorkflowVariable[];
@@ -111,6 +163,13 @@ export type WorkflowExecutionResult = {
   status: WorkflowExecutionStatus;
   output: unknown | null;
   error?: string;
+};
+
+/** Server-admitted workflow execution used by the SaaS product mode. */
+export type ManagedWorkflowExecutionResult = WorkflowExecutionResult & {
+  reconciliationRequired: boolean;
+  maximumMilliCredits: string;
+  chargedMilliCredits: string | null;
 };
 
 export type WorkflowValidationResult = {
@@ -287,6 +346,11 @@ export interface AgentSkill {
   createdByUserId: string | null;
   createdAt: string;
   updatedAt: string;
+  currentVersion?: number;
+  contentHash?: string;
+  origin?: "organization" | "builtin";
+  readOnly?: boolean;
+  builtinVersion?: string;
 }
 
 export interface AgentSkillCreateParams {
@@ -307,6 +371,10 @@ export interface AgentCreateParams {
   name: string;
   description?: string;
   collectionId?: string | null;
+  /** Licensed BYOK selection; managed SaaS uses agents.managed instead. */
+  llmConfigId?: PublicApiComponents["schemas"]["CreateAgentRequest"]["llmConfigId"];
+  fallbackLlmConfigId?: PublicApiComponents["schemas"]["CreateAgentRequest"]["fallbackLlmConfigId"];
+  runtimeKind?: PublicApiComponents["schemas"]["CreateAgentRequest"]["runtimeKind"];
   systemPrompt?: string;
   instructions?: string;
   model?: string;
@@ -358,6 +426,46 @@ export type ChunkingStrategy =
 
 export type PublicCollectionRequiredPlanId = "pro" | "scale" | "enterprise";
 
+export interface PublicCollectionPublisher {
+  name: string;
+  isSystem: boolean;
+}
+
+/** Receipt provenance is distinct from a qualification of the official corpus. */
+export interface CollectionServedSource {
+  status: "verified_receipt" | "unknown";
+  officialCorpusQualified: false;
+  sourceRevision: string | null;
+  sourceTimestamp: string | null;
+  activatedAt: string | null;
+}
+
+export interface PublicCollectionSummary {
+  /** Optional for compatibility with supported older server contracts. */
+  sourceDataset?: string | null;
+  lastSyncedAt?: string | null;
+  servedSource?: CollectionServedSource;
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  publisher: PublicCollectionPublisher;
+  requiredPlanId: PublicCollectionRequiredPlanId | null;
+  accessible: boolean;
+  documentCount: number;
+  updatedAt: string;
+}
+
+export interface PublicCollectionDetail extends PublicCollectionSummary {
+  tags: string[];
+  sampleQueries: string[];
+}
+
+export interface PublicCollectionListParams {
+  minTier?: PublicCollectionRequiredPlanId;
+  query?: string;
+}
+
 export type CollectionAccessTier =
   | "owner"
   | "shared"
@@ -365,6 +473,8 @@ export type CollectionAccessTier =
   | "public-gated";
 
 export interface Collection {
+  lastSyncedAt?: string | null;
+  servedSource?: CollectionServedSource;
   id: string;
   name: string;
   description: string | null;
@@ -392,10 +502,18 @@ export interface Collection {
 export interface CollectionCreateParams {
   name: string;
   description?: string;
+  /** Select an owned embedding configuration instead of the workspace default. */
+  embeddingConfigId?: PublicApiComponents["schemas"]["CreateCollectionRequest"]["embeddingConfigId"];
+  /** Rejected unless omitted or `private`. Publish with `collections.updateVisibility`. */
   visibility?: "private" | "shared" | "public";
   sourceDataset?: string;
   slug?: string;
   requiredPlanId?: PublicCollectionRequiredPlanId;
+}
+
+export interface CollectionVisibilityUpdateParams {
+  visibility: "private" | "shared" | "public";
+  requiredPlanId?: PublicCollectionRequiredPlanId | null;
 }
 
 export interface CollectionUpdateParams {
@@ -407,6 +525,8 @@ export interface CollectionUpdateParams {
 // ─── Chat ──────────────────────────────────────────────────────────
 
 export interface ChatParams {
+  /** Positive integer milli-credits. Required by SaaS; never a provider price. */
+  maximumMilliCredits?: string;
   collectionId: string;
   query: string;
   history?: ChatMessage[];
@@ -422,6 +542,119 @@ export interface ChatResponse {
   relevanceScore?: number;
   pipelineMetrics?: PipelineMetrics;
   featuresUsed?: string[];
+}
+
+/** Request accepted by the platform-managed RAG chat contract. */
+export interface ManagedChatParams {
+  collectionId: string;
+  query: string;
+  maximumMilliCredits?: string;
+  history?: ChatMessage[];
+  includeImages?: boolean;
+  filters?: FilterDefinition[];
+}
+
+/** Public business response. Provider/model and internal usage details are omitted. */
+export interface ManagedChatResponse {
+  answer: string;
+  sources: Source[];
+  images?: ImageResult[];
+  relevanceScore?: number;
+}
+
+export type ManagedProgressiveStreamEvent =
+  | { type: "stage"; stage: string; elapsed: number }
+  | { type: "enhancement"; original: string; enhanced: string; multiQueries?: string[]; featuresUsed: string[] }
+  | { type: "sources"; sources: Source[]; images?: ImageResult[]; retrievalTimeMs: number }
+  | { type: "chunk"; content: string }
+  | { type: "citation"; index: number; sourceId: string; position: number }
+  | { type: "metrics"; pipelineMetrics: PipelineMetrics; featuresUsed: string[] }
+  | { type: "done" }
+  | { type: "error"; error: string };
+
+/** Business-facing agent fields available in managed workspaces. */
+export interface ManagedAgent {
+  id: string;
+  name: string;
+  description: string | null;
+  collectionId: string | null;
+  collectionName?: string | null;
+  systemPrompt: string | null;
+  instructions: string | null;
+  resources?: Array<{ type: "collection"; id: string; priority: number; name?: string | null }>;
+  enabledBuiltinTools: AgentBuiltinToolEntry[] | null;
+  skillIds?: string[];
+  workflowToolIds?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Platform-managed agent configuration excludes model, provider, MCP, and runtime fields. */
+export interface ManagedAgentCreateParams {
+  name: string;
+  description?: string;
+  collectionId?: string | null;
+  resources?: Array<{ type: "collection"; id: string; priority?: number }>;
+  systemPrompt?: string;
+  instructions?: string;
+  enabledBuiltinTools?: AgentBuiltinToolEntry[];
+  skillIds?: string[];
+  workflowToolIds?: string[];
+}
+
+export type ManagedAgentUpdateParams = Omit<Partial<ManagedAgentCreateParams>, "description" | "systemPrompt" | "instructions"> & {
+  description?: string | null;
+  systemPrompt?: string | null;
+  instructions?: string | null;
+  isActive?: boolean;
+};
+
+/** Explicit durable, metered SaaS agent chat admission request. */
+export interface ManagedAgentChatStartParams {
+  requestId: string;
+  sessionId: string;
+  query: string;
+  history?: ChatMessage[];
+  maximumMilliCredits: string;
+}
+
+export interface ManagedAgentChatOutput {
+  response: string;
+  sources: Array<{
+    id?: string;
+    content?: string;
+    type?: string;
+    sourceType?: string;
+    source?: string;
+    documentId?: string;
+    title?: string;
+    pageNumber?: number;
+    imageIndex?: number;
+    score?: number;
+  }>;
+  history: ChatMessage[];
+}
+
+export interface ManagedAgentChatResponse {
+  executionId: string;
+  request: ManagedAgentChatStartParams & { history: ChatMessage[] };
+  status: "pending" | "running" | "completed" | "failed" | "cancelled" | "cancelling";
+  reconciliationRequired: boolean;
+  output: ManagedAgentChatOutput | null;
+  maximumMilliCredits: string;
+  chargedMilliCredits: string | null;
+}
+
+export interface ManagedAgentChatSummary {
+  executionId: string;
+  createdAt: string;
+  question: string;
+}
+
+export interface ManagedAgentChatHistory {
+  items: ManagedAgentChatSummary[];
+  nextCursor: string | null;
 }
 
 export interface AgentChatParams {
@@ -527,6 +760,9 @@ export interface IngestDocumentParams {
 export interface IngestFileParams {
   collectionId: string;
   file: File | Blob;
+  ocrMode?: NonNullable<PublicApiOperations["ingestion.fileAsync"]["requestBody"]>["content"]["multipart/form-data"]["ocrMode"];
+  enableMultimodal?: boolean;
+  mode?: "documents" | "tabular" | "web";
 }
 
 export interface IngestCrawlParams {
@@ -560,6 +796,290 @@ export interface IngestResult {
 
 export interface CrawlResult extends IngestResult {
   pagesCount: number;
+}
+
+export interface AsyncIngestResult {
+  success: boolean;
+  jobId: string;
+  message: string;
+}
+
+export type IngestionJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type IngestionJobSource = "file" | "crawl" | "dataset" | "migration";
+
+export type IngestionJobStep =
+  | "uploading"
+  | "extracting"
+  | "chunking"
+  | "embedding"
+  | "indexing";
+
+export interface IngestionJob {
+  id: string;
+  collectionId: string;
+  source: IngestionJobSource;
+  status: IngestionJobStatus;
+  progress: {
+    current: number;
+    total: number;
+    step: IngestionJobStep;
+  };
+  metrics: Record<string, number>;
+  result?: Record<string, unknown>;
+  error?: string;
+  startedAt: string;
+  completedAt?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface IngestionJobResponse {
+  success: boolean;
+  job: IngestionJob;
+}
+
+export interface IngestionJobsResponse {
+  success: boolean;
+  jobs: IngestionJob[];
+}
+
+export interface IngestionJobCancelResponse {
+  success: boolean;
+  message: string;
+}
+
+export type IngestionJobStreamEvent =
+  | { type: "state"; data: IngestionJob }
+  | { type: "heartbeat"; data: { timestamp: number } }
+  | { type: "error"; data: unknown }
+  | { type: string; data: unknown };
+
+export interface DiscoverSiteParams {
+  url: string;
+  maxPages?: number;
+  maxDepth?: number;
+  excludePatterns?: string[];
+  includePatterns?: string[];
+}
+
+export interface DiscoveredPage {
+  url: string;
+  title: string | null;
+  depth: number;
+  path: string;
+}
+
+export interface DiscoverSiteResult {
+  success: boolean;
+  pages: DiscoveredPage[];
+  totalFound: number;
+  duration: number;
+}
+
+export interface CrawlSelectedParams {
+  collectionId: string;
+  urls: string[];
+  enableMultimodal?: boolean;
+}
+
+// ─── Widgets ───────────────────────────────────────────────────────
+
+export type WidgetType =
+  | "collection"
+  | "agent"
+  | "workflow-button"
+  | "workflow-form"
+  | "workflow-webhook";
+
+export type WidgetPosition =
+  | "bottom-right"
+  | "bottom-left"
+  | "top-right"
+  | "top-left";
+
+export interface WidgetTheme {
+  preset?: "light" | "dark" | "auto";
+  primaryColor?: string;
+  primaryTextColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  secondaryTextColor?: string;
+  borderColor?: string;
+  inputBackgroundColor?: string;
+  fontFamily?: string;
+  borderRadius?: string;
+  shadow?: string;
+  userMessageBackgroundColor?: string;
+  userMessageTextColor?: string;
+  assistantMessageBackgroundColor?: string;
+  assistantMessageTextColor?: string;
+}
+
+export interface WidgetSuggestion {
+  title: string;
+  prompt: string;
+}
+
+export interface WidgetHumanEscalation {
+  type: "mailto" | "url" | "webhook";
+  target: string;
+  label?: string;
+}
+
+export interface WidgetConfig {
+  id: string;
+  name: string;
+  type: WidgetType;
+  collectionId: string | null;
+  agentId: string | null;
+  workflowId: string | null;
+  workflowConfig: Record<string, unknown> | null;
+  keyPrefix: string;
+  allowedDomains: string[];
+  theme: WidgetTheme | null;
+  position: WidgetPosition;
+  welcomeMessage: string | null;
+  placeholder: string | null;
+  suggestions: WidgetSuggestion[] | null;
+  avatarUrl: string | null;
+  displayMode: "support" | "debug";
+  locale: "fr" | "en" | null;
+  headerTitle: string | null;
+  hidePoweredBy: boolean;
+  customCss: string | null;
+  humanEscalation: WidgetHumanEscalation | null;
+  rateLimitPerMinute: number;
+  sessionTtlMinutes: number;
+  llmConfigId: string | null;
+  llmModel: string | null;
+  llmSource: "byok" | "platform";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Managed widget DTO; omits provider selection and potentially secret escalation targets. */
+export type ManagedWidgetConfig = Omit<WidgetConfig,
+  "workflowConfig" | "humanEscalation" | "llmConfigId" | "llmModel" | "llmSource"> & {
+    workflowConfig: ManagedWidgetBusinessConfiguration | null;
+  };
+
+export interface ManagedWidgetBusinessConfiguration {
+  deepActivation?: "disabled" | "visitor_allowed";
+  deepModeLabel?: string;
+  buttonLabel?: string;
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  fieldOverrides?: Record<string, {
+    label?: string;
+    placeholder?: string;
+    helpText?: string;
+    inputType?: "text" | "textarea" | "number" | "email" | "url" | "password" | "select" | "checkbox" | "date";
+    options?: Array<{ label: string; value: string }>;
+    required?: boolean;
+  }>;
+  maxDisplayedExecutions?: number;
+  showNodeProgress?: boolean;
+  showDuration?: boolean;
+  showOutput?: boolean;
+}
+
+export type ManagedWidgetCreateParams = Omit<WidgetCreateParams,
+  "workflowConfig" | "humanEscalation" | "llmConfigId" | "llmModel" | "llmSource"> & {
+    workflowConfig?: ManagedWidgetBusinessConfiguration;
+  };
+
+export type ManagedWidgetUpdateParams = Omit<WidgetUpdateParams,
+  "workflowConfig" | "humanEscalation" | "llmConfigId" | "llmModel" | "llmSource"> & {
+    workflowConfig?: ManagedWidgetBusinessConfiguration;
+  };
+
+export interface ManagedWidgetCreateResult {
+  widget: ManagedWidgetConfig;
+  /** One-time public embed credential required to install the widget. */
+  widgetKey: string;
+  embedCode: string;
+}
+
+export interface WidgetCreateParams {
+  name: string;
+  type: WidgetType;
+  collectionId?: string;
+  agentId?: string;
+  workflowId?: string;
+  workflowConfig?: Record<string, unknown>;
+  allowedDomains?: string[];
+  theme?: WidgetTheme;
+  position?: WidgetPosition;
+  welcomeMessage?: string;
+  placeholder?: string;
+  suggestions?: WidgetSuggestion[];
+  avatarUrl?: string;
+  displayMode?: "support" | "debug";
+  locale?: "fr" | "en" | null;
+  headerTitle?: string | null;
+  hidePoweredBy?: boolean;
+  customCss?: string | null;
+  humanEscalation?: WidgetHumanEscalation | null;
+  rateLimitPerMinute?: number;
+  sessionTtlMinutes?: number;
+  llmConfigId?: string;
+  llmModel?: string;
+  llmSource?: "byok" | "platform";
+}
+
+export interface WidgetUpdateParams {
+  name?: string;
+  allowedDomains?: string[];
+  theme?: WidgetTheme;
+  position?: WidgetPosition;
+  welcomeMessage?: string;
+  placeholder?: string;
+  suggestions?: WidgetSuggestion[];
+  avatarUrl?: string;
+  displayMode?: "support" | "debug";
+  locale?: "fr" | "en" | null;
+  headerTitle?: string | null;
+  hidePoweredBy?: boolean;
+  customCss?: string | null;
+  humanEscalation?: WidgetHumanEscalation | null;
+  rateLimitPerMinute?: number;
+  sessionTtlMinutes?: number;
+  llmConfigId?: string | null;
+  llmModel?: string | null;
+  llmSource?: "byok" | "platform";
+  workflowConfig?: Record<string, unknown>;
+  isActive?: boolean;
+}
+
+export interface WidgetCreateResult {
+  widget: WidgetConfig;
+  widgetKey: string;
+  embedCode: string;
+}
+
+export interface WidgetKeyResult {
+  widgetKey: string;
+  embedCode: string;
+}
+
+export interface WidgetAnalytics {
+  totalSessions: number;
+  totalMessages: number;
+  averageMessagesPerSession: number;
+  uniqueVisitors: number;
+  topQueries: Array<{ message: string; count: number }>;
+  dailyBreakdown: Array<{ date: string; sessions: number; messages: number }>;
+  conversationFeedbacks: number;
+  resolvedCount: number;
+  resolutionRate: number;
+  averageRating: number | null;
 }
 
 // ─── MCP ───────────────────────────────────────────────────────────

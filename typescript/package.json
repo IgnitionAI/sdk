@@ -1,7 +1,7 @@
 {
   "name": "@ignitionai/sdk",
-  "version": "0.3.0-rc.3",
-  "description": "TypeScript SDK for licensed and self-hosted IgnitionRAG deployments",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for managed SaaS, licensed, and self-hosted IgnitionRAG deployments",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -51,7 +51,8 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:cjs-pkg": "echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
     "test": "bun test",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.generated.json",
+    "test:live": "bun run scripts/check-live.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.generated.json && tsc --noEmit --strict --target ES2022 --module ES2022 --moduleResolution bundler --lib ES2022,DOM,DOM.Iterable tests/contracts.types.ts",
     "generate:types": "bun run scripts/generate-wire-types.ts",
     "verify:contract": "bun run scripts/verify-contract.ts"
   },
@@ -82,13 +83,13 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "overrides": {
+    "brace-expansion": "^2.1.7",
+    "js-yaml": "^4.3.2"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "openapi-typescript": "^7.13.0",
     "typescript": "^5.3.0"
-  },
-  "overrides": {
-    "brace-expansion": "^2.1.7",
-    "js-yaml": "^4.3.2"
   }
 }

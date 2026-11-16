@@ -146,3 +146,97 @@ describe("chat.streamProgressive", () => {
     expect(call[0]).toContain("/api/chat/stream/progressive");
   });
 });
+
+describe("managed chat budgets", () => {
+  for (const method of ["send", "stream", "streamProgressive"] as const) {
+    test(`${method} sends an exact budget without model configuration`, async () => {
+      const request = mock(() => Promise.resolve(new Response(JSON.stringify({ answer: "ok", sources: [] }), { status: 200 })));
+      const client = createClient(request as unknown as typeof fetch);
+      await client.chat[method]({ collectionId: "collection", query: "Question", maximumMilliCredits: "9999999999999999" });
+      const body = JSON.parse((request.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+      expect(body.maximumMilliCredits).toBe("9999999999999999");
+      expect(body).not.toHaveProperty("llmConfigId");
+    });
+    test(`${method} rejects invalid budgets and model overrides before dispatch`, async () => {
+      const request = mock(() => Promise.reject(new Error("must not dispatch")));
+      const client = createClient(request as unknown as typeof fetch);
+      for (const maximumMilliCredits of ["0", "-1", "1.5", "1e6", "10000000000000000"]) {
+        await expect(Promise.resolve().then(() => client.chat[method]({ collectionId: "collection", query: "Question", maximumMilliCredits }))).rejects.toBeInstanceOf(TypeError);
+      }
+      await expect(Promise.resolve().then(() => client.chat[method]({ collectionId: "collection", query: "Question", maximumMilliCredits: "1000", llmConfigId: "private-model" }))).rejects.toBeInstanceOf(TypeError);
+      expect(request).not.toHaveBeenCalled();
+    });
+  }
+});
+
+describe("explicit managed chat contract", () => {
+  test("rejects model and LLM configuration overrides before dispatch with or without a budget", async () => {
+    const request = mock(() => Promise.reject(new Error("must not dispatch")));
+    const client = createClient(request as unknown as typeof fetch);
+    const methods = ["send", "stream", "streamProgressive"] as const;
+    const overrides = [
+      { llmConfigId: "private-llm-config" },
+      { model: "private-model" },
+    ];
+
+    for (const method of methods) {
+      for (const maximumMilliCredits of [undefined, "1000"]) {
+        for (const override of overrides) {
+          const params = {
+            collectionId: "collection",
+            query: "Question",
+            ...(maximumMilliCredits === undefined ? {} : { maximumMilliCredits }),
+            ...override,
+          };
+          await expect(
+            Promise.resolve().then(() => client.chat.managed[method](params as never)),
+          ).rejects.toThrow("Managed chat cannot override model or LLM configuration");
+        }
+      }
+    }
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  test("whitelists nested request and response fields and strips progressive diagnostics", async () => {
+    const responseBody = JSON.stringify({
+      answer: "Safe answer", model: "private-model", usage: { promptTokens: 99 }, providerConfig: { key: "secret" },
+      sources: [{ type: "text", content: "Excerpt", score: 0.9, source: "doc.pdf", sourceType: "document", providerConfig: "secret" }],
+    });
+    const fetchMock = mock(() => Promise.resolve(new Response(responseBody, { status: 200, headers: { "Content-Type": "application/json" } }))) as unknown as typeof fetch;
+    const client = createClient(fetchMock);
+    const result = await client.chat.managed.send({ collectionId: "collection", query: "Question" });
+    expect(result.answer).toBe("Safe answer");
+    expect(result).not.toHaveProperty("model");
+    expect(result).not.toHaveProperty("usage");
+    expect(result.sources[0]).not.toHaveProperty("providerConfig");
+
+    const streamSse = `event: sources\ndata: ${JSON.stringify([{ type: "text", content: "Excerpt", score: 1, source: "doc", sourceType: "document", model: "secret" }])}\n\nevent: done\ndata: \n\n`;
+    const streamFetch = mock(() => Promise.resolve(new Response(sseBody(streamSse), { status: 200, headers: { "Content-Type": "text/event-stream" } }))) as unknown as typeof fetch;
+    const streamClient = createClient(streamFetch);
+    const events = [];
+    for await (const event of streamClient.chat.managed.stream({ collectionId: "collection", query: "Question" })) events.push(event);
+    expect(events[0].type).toBe("sources");
+    if (events[0].type === "sources") expect(events[0].sources[0]).not.toHaveProperty("model");
+
+    const progressiveSse = [
+      `event: stage\ndata: ${JSON.stringify({ stage: "searching", elapsed: 4, details: { config: "secret" } })}`,
+      `event: metrics\ndata: ${JSON.stringify({ pipelineMetrics: { totalTimeMs: 4, queryEnhancementMs: 0, searchMs: 4, rerankMs: 0, resultsCount: 1 }, featuresUsed: [], config: { apiKey: "secret" } })}`,
+      "event: done\ndata: ",
+    ].join("\n\n") + "\n\n";
+    const progressiveFetch = mock(() => Promise.resolve(new Response(sseBody(progressiveSse), { status: 200, headers: { "Content-Type": "text/event-stream" } }))) as unknown as typeof fetch;
+    const progressiveClient = createClient(progressiveFetch);
+    const progressiveEvents = [];
+    for await (const event of progressiveClient.chat.managed.streamProgressive({ collectionId: "collection", query: "Question" })) progressiveEvents.push(event);
+    expect(progressiveEvents[0]).toEqual({ type: "stage", stage: "searching", elapsed: 4 });
+    expect(progressiveEvents[1].type).toBe("metrics");
+    if (progressiveEvents[1].type === "metrics") expect(progressiveEvents[1]).not.toHaveProperty("config");
+
+    const invalidNestedFetch = mock(() => Promise.reject(new Error("must not dispatch"))) as unknown as typeof fetch;
+    const invalidNestedClient = createClient(invalidNestedFetch);
+    await expect(invalidNestedClient.chat.managed.send({
+      collectionId: "collection", query: "Question",
+      history: [{ role: "user", content: "Q", model: "private-model" } as never],
+    })).rejects.toThrow("Managed chat cannot override model or LLM configuration");
+    expect(invalidNestedFetch).not.toHaveBeenCalled();
+  });
+});
