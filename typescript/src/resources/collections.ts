@@ -3,6 +3,7 @@ import type {
   Collection,
   CollectionCreateParams,
   CollectionUpdateParams,
+  CollectionVisibilityUpdateParams,
   ChunkListParams,
   ChunkListResponse,
   SearchParams,
@@ -12,6 +13,9 @@ import type {
   CollectionQualityReport,
   DocumentRecord,
   ChunkingStrategy,
+  PublicCollectionDetail,
+  PublicCollectionListParams,
+  PublicCollectionSummary,
 } from "../types.js";
 import {
   RETRIEVAL_PRESETS,
@@ -21,6 +25,29 @@ import {
 
 export class Collections {
   constructor(private client: BaseClient) {}
+
+  /** Browse the dedicated public collection catalog for the caller's plan. */
+  async listPublic(
+    options: PublicCollectionListParams = {},
+  ): Promise<PublicCollectionSummary[]> {
+    const params = new URLSearchParams();
+    if (options.minTier) params.set("minTier", options.minTier);
+    if (options.query) params.set("q", options.query);
+    const query = params.toString() ? `?${params}` : "";
+    const data = await this.client.request<{ items: PublicCollectionSummary[] }>(
+      "GET",
+      `/public-collections${query}`,
+    );
+    return data.items;
+  }
+
+  /** Resolve a public collection and its sample queries by stable slug. */
+  async getPublic(slug: string): Promise<PublicCollectionDetail> {
+    return this.client.request<PublicCollectionDetail>(
+      "GET",
+      `/public-collections/${encodeURIComponent(slug)}`,
+    );
+  }
 
   async list(options?: {
     includeShared?: boolean;
@@ -50,6 +77,21 @@ export class Collections {
     return this.client.request<Collection>("PATCH", `/collections/${id}`, {
       body: JSON.stringify(params),
     });
+  }
+
+  /**
+   * Dedicated publication command. Requires a platform super-admin in the
+   * collection's owner tenant. Create stays private.
+   */
+  async updateVisibility(
+    id: string,
+    params: CollectionVisibilityUpdateParams
+  ): Promise<Collection> {
+    return this.client.request<Collection>(
+      "PATCH",
+      `/collections/${id}/visibility`,
+      { body: JSON.stringify(params) }
+    );
   }
 
   async delete(

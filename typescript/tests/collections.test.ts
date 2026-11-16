@@ -22,6 +22,16 @@ function createClient(fetchMock: typeof fetch): IgnitionAI {
 }
 
 describe("collections.list", () => {
+  test("creation serializes an explicit embedding selection without a default mutation", async () => {
+    const requests: { method: string | undefined; body: unknown }[] = [];
+    const client = createClient(async (_url, init) => {
+      requests.push({ method: init?.method, body: JSON.parse(String(init?.body)) });
+      return Response.json({ id: "collection-fixture", name: "Private documents" });
+    });
+    await client.collections.create({ name: "Private documents", embeddingConfigId: "owned-embedding-config" });
+    expect(requests).toEqual([{ method: "POST", body: { name: "Private documents", embeddingConfigId: "owned-embedding-config" } }]);
+  });
+
   test("GET /collections", async () => {
     const collections = [
       { id: "coll_1", name: "Docs", documentCount: 10 },
@@ -87,6 +97,27 @@ describe("collections.list", () => {
   });
 });
 
+describe("collections public catalog", () => {
+  test("lists and resolves public collections", async () => {
+    const fetchMock = jsonFetch({ items: [{ id: "public_1", slug: "labor-code" }] });
+    const client = createClient(fetchMock);
+
+    const items = await client.collections.listPublic({
+      minTier: "pro",
+      query: "labor",
+    });
+    await client.collections.getPublic("labor/code");
+
+    expect(items[0]?.slug).toBe("labor-code");
+    expect((fetchMock as any).mock.calls[0][0]).toBe(
+      "http://localhost/api/public-collections?minTier=pro&q=labor",
+    );
+    expect((fetchMock as any).mock.calls[1][0]).toBe(
+      "http://localhost/api/public-collections/labor%2Fcode",
+    );
+  });
+});
+
 describe("collections.create", () => {
   test("POST /collections", async () => {
     const created = { id: "coll_new", name: "New", visibility: "private" };
@@ -141,6 +172,26 @@ describe("collections.update", () => {
     const call = (fetchMock as any).mock.calls[0];
     expect(call[0]).toContain("/api/collections/coll_1");
     expect(call[1].method).toBe("PATCH");
+  });
+});
+
+describe("collections.updateVisibility", () => {
+  test("PATCH /collections/:id/visibility", async () => {
+    const fetchMock = jsonFetch({ id: "coll_1", visibility: "public" });
+    const client = createClient(fetchMock);
+
+    await client.collections.updateVisibility("coll_1", {
+      visibility: "public",
+      requiredPlanId: "pro",
+    });
+
+    const call = (fetchMock as any).mock.calls[0];
+    expect(call[0]).toContain("/api/collections/coll_1/visibility");
+    expect(call[1].method).toBe("PATCH");
+    expect(JSON.parse(call[1].body)).toEqual({
+      visibility: "public",
+      requiredPlanId: "pro",
+    });
   });
 });
 
@@ -264,7 +315,7 @@ describe("collections.qualityReport", () => {
     const report = {
       totalDocuments: 5,
       documentsWithReport: 5,
-      extractionMethods: { "pdf-mupdf": 3, "docx-mammoth": 2 },
+      extractionMethods: { "pdf-unpdf": 3, "docx-mammoth": 2 },
       ocr: { docsWithOcr: 1, totalPagesOcrd: 4, totalPagesRejected: 0, docsWithOcrRejections: 0, totalCharsExtracted: 2200 },
       images: { totalExtracted: 8, totalIndexed: 8, totalSkipped: 0, docsWithImages: 2 },
       tables: { docsWithTables: 0, totalTables: 0, totalRows: 0 },
@@ -344,4 +395,18 @@ describe("collections.applyRagPreset", () => {
     expect(body.reranking.topN).toBe(5);
     expect(body.features.dynamicFeatureSelection).toBe(false);
   });
+});
+
+
+test("collection and public catalogue clients preserve receipt evidence without inventing corpus qualification", async () => {
+  for (const status of ["verified_receipt", "unknown"] as const) {
+    const servedSource = { status, officialCorpusQualified: false as const, sourceRevision: status === "verified_receipt" ? "source-r1" : null, sourceTimestamp: null, activatedAt: null };
+    const item = { id: "collection-receipt", name: "Fixture", sourceDataset: "legifrance", lastSyncedAt: null, servedSource };
+    const collection = await createClient(jsonFetch(item)).collections.get(item.id);
+    const catalogue = await createClient(jsonFetch({ items: [item] })).collections.listPublic();
+    expect(collection.servedSource).toEqual(servedSource);
+    expect(catalogue[0]?.servedSource).toEqual(servedSource);
+    expect(catalogue[0]?.sourceDataset).toBe("legifrance");
+    expect(catalogue[0]?.lastSyncedAt).toBeNull();
+  }
 });

@@ -32,6 +32,15 @@ describe("README contract snippets", () => {
     expect(readme).toContain("`latest` tag remains on the stable `0.2.x` line");
   });
 
+  test("documents SaaS member ingest routes and offering errors", () => {
+    expect(readme).toContain("On managed SaaS, members use the metered async routes");
+    expect(readme).toContain("POST /api/ingest/url/async");
+    expect(readme).toContain("OfferingUnavailableError");
+    expect(readme).toContain("AI_TEMPORARILY_UNAVAILABLE");
+    expect(readme).toContain("ingest.crawlAsync");
+    expect(readme).toContain("ingest.datasetAsync");
+  });
+
   test("documents every first-class execution surface", () => {
     expect(dataChatSource).toContain("precheck(");
     expect(dataChatSource).toContain("send(");

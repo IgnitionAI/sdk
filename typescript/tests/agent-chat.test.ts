@@ -171,3 +171,56 @@ describe("agentChat.stream", () => {
     expect(body.history.length).toBe(2);
   });
 });
+
+describe("managed agent chat contract", () => {
+  test("rejects undeclared provider fields before dispatch and uses durable admission", async () => {
+    const fetchMock = mock(() => Promise.resolve(new Response(JSON.stringify({
+      executionId: "execution-id", request: {
+        requestId: "11111111-1111-4111-8111-111111111111", sessionId: "session-1", query: "Question",
+        history: [], maximumMilliCredits: "1000", model: "secret-model",
+      }, status: "pending", reconciliationRequired: false, output: null,
+      maximumMilliCredits: "1000", chargedMilliCredits: null, provider: "secret-provider",
+    }), { status: 202, headers: { "Content-Type": "application/json" } }))) as unknown as typeof fetch;
+    const client = createClient(fetchMock);
+    const valid = {
+      requestId: "11111111-1111-4111-8111-111111111111", sessionId: "session-1", query: "Question", maximumMilliCredits: "1000",
+    };
+
+    await expect(client.agentChat.managed.start("agent_1", { ...valid, model: "private-model" } as never))
+      .rejects.toThrow("Managed agent chat does not accept model");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const result = await client.agentChat.managed.start("agent_1", valid);
+    expect(result.status).toBe("pending");
+    expect(result.request.query).toBe("Question");
+    expect(result.request).not.toHaveProperty("model");
+    expect(result).not.toHaveProperty("provider");
+    const call = (fetchMock as any).mock.calls[0];
+    expect(call[0]).toContain("/api/agents/agent_1/chat/executions");
+    expect(JSON.parse(call[1].body)).toEqual({ ...valid, history: [] });
+  });
+
+  test("projects durable results and history without internal metadata", async () => {
+    const response = {
+      executionId: "execution-id", request: {
+        requestId: "11111111-1111-4111-8111-111111111111", sessionId: "session-1", query: "Question",
+        history: [], maximumMilliCredits: "1000", providerConfig: { key: "secret" },
+      }, status: "completed", reconciliationRequired: false,
+      output: { response: "Answer", sources: [{ content: "source", score: 0.9, providerConfig: "secret" }], history: [], trace: { token: "secret" } },
+      maximumMilliCredits: "1000", chargedMilliCredits: "250", model: "secret-model",
+    };
+    const fetchMock = mock(() => Promise.resolve(new Response(JSON.stringify(response), { status: 200, headers: { "Content-Type": "application/json" } }))) as unknown as typeof fetch;
+    const client = createClient(fetchMock);
+    const result = await client.agentChat.managed.get("agent_1", "execution-id");
+    expect(result.output?.response).toBe("Answer");
+    expect(result.output?.sources[0]).not.toHaveProperty("providerConfig");
+    expect(result.request).not.toHaveProperty("providerConfig");
+    expect(result).not.toHaveProperty("model");
+
+    const historyFetch = mock(() => Promise.resolve(new Response(JSON.stringify({ items: [{ executionId: "e1", createdAt: "now", question: "Q", model: "secret" }], nextCursor: null, trace: "secret" }), { status: 200 }))) as unknown as typeof fetch;
+    const historyClient = createClient(historyFetch);
+    const history = await historyClient.agentChat.managed.list("agent_1");
+    expect(history.items).toEqual([{ executionId: "e1", createdAt: "now", question: "Q" }]);
+    expect(history).not.toHaveProperty("trace");
+  });
+});

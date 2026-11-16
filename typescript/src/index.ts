@@ -10,6 +10,10 @@ import { DataChat } from "./resources/data-chat.js";
 import { Compatibility } from "./resources/compatibility.js";
 import { Workflows } from "./resources/workflows.js";
 import { DeepResearch } from "./resources/deep-research.js";
+import { Widgets } from "./resources/widgets.js";
+import { Feedback } from "./resources/feedback.js";
+import { Traces } from "./resources/traces.js";
+import { RagAbTests } from "./resources/rag-ab-tests.js";
 import { ConfigurationError } from "./errors.js";
 import type { ClientOptions } from "./types.js";
 
@@ -26,6 +30,10 @@ export class IgnitionAI extends BaseClient {
   readonly compatibility: Compatibility;
   readonly workflows: Workflows;
   readonly deepResearch: DeepResearch;
+  readonly widgets: Widgets;
+  readonly feedback: Feedback;
+  readonly traces: Traces;
+  readonly ragAbTests: RagAbTests;
 
   constructor(options: ClientOptions) {
     super(options);
@@ -40,6 +48,10 @@ export class IgnitionAI extends BaseClient {
     this.compatibility = new Compatibility(this);
     this.workflows = new Workflows(this);
     this.deepResearch = new DeepResearch(this);
+    this.widgets = new Widgets(this);
+    this.feedback = new Feedback(this);
+    this.traces = new Traces(this);
+    this.ragAbTests = new RagAbTests(this);
   }
 
   /** Construct a client from IGNITION_API_KEY in a trusted server runtime. */
@@ -59,6 +71,20 @@ export class IgnitionAI extends BaseClient {
 // Re-export types
 export type {
   ClientOptions,
+  FeedbackParams,
+  FeedbackResult,
+  Trace,
+  TraceType,
+  TraceStatus,
+  TraceListParams,
+  TraceListResponse,
+  TraceMetricsParams,
+  TraceMetrics,
+  TraceExportParams,
+  TraceExport,
+  RagConfigCandidate,
+  RagAbTestParams,
+  RagAbTestResult,
   Source,
   ImageResult,
   PipelineMetrics,
@@ -76,12 +102,29 @@ export type {
   AgentSkillStatus,
   AgentSkillUpdateParams,
   Collection,
+  CollectionServedSource,
   CollectionAccessTier,
   CollectionCreateParams,
   PublicCollectionRequiredPlanId,
+  PublicCollectionPublisher,
+  PublicCollectionSummary,
+  PublicCollectionDetail,
+  PublicCollectionListParams,
   CollectionUpdateParams,
+  CollectionVisibilityUpdateParams,
   ChatParams,
   ChatResponse,
+  ManagedChatParams,
+  ManagedChatResponse,
+  ManagedProgressiveStreamEvent,
+  ManagedAgent,
+  ManagedAgentCreateParams,
+  ManagedAgentUpdateParams,
+  ManagedAgentChatStartParams,
+  ManagedAgentChatOutput,
+  ManagedAgentChatResponse,
+  ManagedAgentChatSummary,
+  ManagedAgentChatHistory,
   AgentChatParams,
   ChatStreamEvent,
   ProgressiveStreamEvent,
@@ -93,6 +136,35 @@ export type {
   IngestDatasetParams,
   IngestResult,
   CrawlResult,
+  AsyncIngestResult,
+  IngestionJob,
+  IngestionJobStatus,
+  IngestionJobSource,
+  IngestionJobStep,
+  IngestionJobResponse,
+  IngestionJobsResponse,
+  IngestionJobCancelResponse,
+  IngestionJobStreamEvent,
+  DiscoverSiteParams,
+  DiscoveredPage,
+  DiscoverSiteResult,
+  CrawlSelectedParams,
+  WidgetType,
+  WidgetPosition,
+  WidgetTheme,
+  WidgetSuggestion,
+  WidgetHumanEscalation,
+  WidgetConfig,
+  ManagedWidgetConfig,
+  ManagedWidgetBusinessConfiguration,
+  ManagedWidgetCreateParams,
+  ManagedWidgetUpdateParams,
+  ManagedWidgetCreateResult,
+  WidgetCreateParams,
+  WidgetUpdateParams,
+  WidgetCreateResult,
+  WidgetKeyResult,
+  WidgetAnalytics,
   McpPrompt,
   McpResource,
   McpPromptContent,
@@ -147,6 +219,7 @@ export {
   ConfigurationError,
   SecurityError,
   ProtocolError,
+  UnsupportedCapabilityError,
   UnsupportedContractVersionError,
   ContractDigestMismatchError,
   APIError,
@@ -159,13 +232,14 @@ export {
   BadRequestError,
   RateLimitError,
   InternalServerError,
+  OfferingUnavailableError,
   APIConnectionError,
   APIConnectionTimeoutError,
   RequestCancelledError,
 } from "./errors.js";
 
 // Re-export stream classes
-export { ChatStream, AgentChatStream, ProgressiveStream, DeepResearchStream } from "./streaming.js";
+export { ChatStream, AgentChatStream, ProgressiveStream, DeepResearchStream, IngestionJobStream } from "./streaming.js";
 
 // Re-export version
 export { VERSION } from "./version.js";

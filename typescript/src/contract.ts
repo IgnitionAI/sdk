@@ -1,4 +1,4 @@
-// Generated from the verified IgnitionRAG public contract.
-export const PUBLIC_CONTRACT_VERSION = "2026.07" as const;
-export const PUBLIC_CONTRACT_DIGEST = "sha256:a83d9ad89dc77c3d2ab0daae07596aabe161cfe1c4e28ba4afbc500a04ed1fb5" as const;
-export const SUPPORTED_CONTRACT_VERSIONS = ["2026.07", "2026.06"] as const;
+// Generated from the canonical IgnitionRAG public contract.
+export const PUBLIC_CONTRACT_VERSION = "2026.11" as const;
+export const PUBLIC_CONTRACT_DIGEST = "sha256:37839de6724326e9d7ad949a08f95dcc2d960580d9fc2c8bad0933ce8b4ef78d" as const;
+export const SUPPORTED_CONTRACT_VERSIONS = ["2026.11","2026.10","2026.09"] as const;

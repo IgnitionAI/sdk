@@ -4,10 +4,20 @@ import type {
   WorkflowCreateParams,
   WorkflowExecution,
   WorkflowExecutionResult,
+  ManagedWorkflowExecutionResult,
   WorkflowListItem,
   WorkflowUpdateParams,
   WorkflowValidationResult,
 } from "../types.js";
+
+function serializeManagedExecution(params: {
+  requestId: string;
+  input?: Record<string, unknown>;
+}): string {
+  if (typeof params.requestId !== "string" || params.requestId.length === 0)
+    throw new TypeError("requestId must be a non-empty string");
+  return JSON.stringify(params);
+}
 
 export class Workflows {
   constructor(private readonly client: BaseClient) {}
@@ -55,6 +65,18 @@ export class Workflows {
     );
   }
 
+  /** Starts a SaaS execution through the durable credit admission contract. */
+  async executeManaged(
+    id: string,
+    params: { requestId: string; input?: Record<string, unknown> },
+  ): Promise<ManagedWorkflowExecutionResult> {
+    return this.client.request<ManagedWorkflowExecutionResult>(
+      "POST",
+      `/workflows/${id}/execute`,
+      { body: serializeManagedExecution(params) },
+    );
+  }
+
   async listExecutions(
     workflowId: string,
     options: { limit?: number } = {},
@@ -74,7 +96,7 @@ export class Workflows {
   }
 
   /** Cancels the remote execution. Aborting an HTTP request does not call this method. */
-  async cancelExecution(executionId: string): Promise<{ success: boolean }> {
+  async cancelExecution(executionId: string): Promise<{ cancelled: boolean }> {
     return this.client.request(
       "DELETE",
       `/workflows/executions/${executionId}`,

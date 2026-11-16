@@ -10,6 +10,10 @@ import { DataChat } from "./resources/data-chat.js";
 import { Compatibility } from "./resources/compatibility.js";
 import { Workflows } from "./resources/workflows.js";
 import { DeepResearch } from "./resources/deep-research.js";
+import { Widgets } from "./resources/widgets.js";
+import { Feedback } from "./resources/feedback.js";
+import { Traces } from "./resources/traces.js";
+import { RagAbTests } from "./resources/rag-ab-tests.js";
 import type { ClientOptions } from "./types.js";
 
 export type BrowserClientOptions = Omit<
@@ -32,6 +36,10 @@ export class IgnitionAI extends BaseClient {
   readonly compatibility: Compatibility;
   readonly workflows: Workflows;
   readonly deepResearch: DeepResearch;
+  readonly widgets: Widgets;
+  readonly feedback: Feedback;
+  readonly traces: Traces;
+  readonly ragAbTests: RagAbTests;
 
   constructor(options: BrowserClientOptions) {
     if ("apiKey" in options) {
@@ -50,6 +58,10 @@ export class IgnitionAI extends BaseClient {
     this.compatibility = new Compatibility(this);
     this.workflows = new Workflows(this);
     this.deepResearch = new DeepResearch(this);
+    this.widgets = new Widgets(this);
+    this.feedback = new Feedback(this);
+    this.traces = new Traces(this);
+    this.ragAbTests = new RagAbTests(this);
   }
 }
 

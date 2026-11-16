@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { PUBLIC_CONTRACT_DIGEST, PUBLIC_CONTRACT_VERSION } from "../src/contract.js";
 
 function valueAfter(argv: string[], flag: string): string | undefined {
   const index = argv.indexOf(flag);
@@ -21,18 +22,29 @@ function decodeBase64(value: string): ArrayBuffer {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0)).buffer;
 }
 
-function resolvePublicFile(explicit: string | undefined, relativePath: string): string {
+function resolvePublicFile(explicit: string | undefined, ...relativePaths: string[]): string {
   if (explicit) return resolve(explicit);
-  for (const candidate of [relativePath, `../${relativePath}`]) {
-    const absolute = resolve(candidate);
-    if (existsSync(absolute)) return absolute;
+  const roots = [resolve(import.meta.dir, ".."), resolve(import.meta.dir, "../..")];
+  for (const relativePath of relativePaths) {
+    for (const root of roots) {
+      const absolute = resolve(root, relativePath);
+      if (existsSync(absolute)) return absolute;
+    }
   }
-  throw new Error(`Unable to locate ${relativePath}`);
+  throw new Error(`Unable to locate ${relativePaths.join(" or ")}`);
 }
 
+const requireSdkIdentity = process.argv.includes("--require-sdk-identity");
+const explicitContract = valueAfter(process.argv, "--contract");
 const contractPath = resolvePublicFile(
-  valueAfter(process.argv, "--contract"),
-  "contracts/2026.07/public-sdk-contract.json",
+  explicitContract,
+  `contracts/${PUBLIC_CONTRACT_VERSION}/public-sdk-contract.json`,
+  // Last signed artifact in this private archive. Identity 2026.11 is prepared
+  // but unsigned here; official signing targets IgnitionAI/sdk, not this path.
+  ...(requireSdkIdentity ? [] : ["contracts/2026.07/public-sdk-contract.json"]),
+);
+const usedPrivateFallback = !explicitContract && !contractPath.endsWith(
+  `/contracts/${PUBLIC_CONTRACT_VERSION}/public-sdk-contract.json`,
 );
 const trustedKeysPath = resolvePublicFile(
   valueAfter(process.argv, "--trusted-keys"),
@@ -46,7 +58,7 @@ if (!Number.isSafeInteger(minimumReleaseSequence) || minimumReleaseSequence < 1)
 }
 
 const artifact = JSON.parse(await Bun.file(contractPath).text()) as {
-  payload: { releaseSequence: number } & Record<string, unknown>;
+  payload: { releaseSequence: number; contractVersion?: unknown } & Record<string, unknown>;
   digest: string;
   signature: null | { algorithm: string; keyId: string; value: string };
 };
@@ -87,6 +99,35 @@ const valid = await crypto.subtle.verify(
 );
 if (!valid) throw new Error("Public contract signature mismatch");
 
+const verifiedVersion = typeof artifact.payload.contractVersion === "string"
+  ? artifact.payload.contractVersion
+  : "unknown";
+if (requireSdkIdentity && verifiedVersion !== PUBLIC_CONTRACT_VERSION) {
+  throw new Error(`Signed contract version ${verifiedVersion} does not match SDK identity ${PUBLIC_CONTRACT_VERSION}`);
+}
+if (verifiedVersion === PUBLIC_CONTRACT_VERSION) {
+  const { schemaVersion, contractVersion, manifest, openapi, protocols } = artifact.payload;
+  const shapeBytes = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(stableStringify({ schemaVersion, contractVersion, manifest, openapi, protocols })),
+  );
+  const shapeDigest = `sha256:${Buffer.from(shapeBytes).toString("hex")}`;
+  if (shapeDigest !== PUBLIC_CONTRACT_DIGEST) {
+    throw new Error("Signed contract shape does not match the generated SDK identity");
+  }
+}
+
 console.log(
-  `Verified contract sequence ${artifact.payload.releaseSequence} with ${artifact.signature.keyId}`,
+  `Verified contract sequence ${artifact.payload.releaseSequence} version ${verifiedVersion} at ${contractPath} with ${artifact.signature.keyId}`,
 );
+if (verifiedVersion !== PUBLIC_CONTRACT_VERSION) {
+  if (usedPrivateFallback) {
+    console.log(
+      `Using last signed private archive ${verifiedVersion}; SDK identity ${PUBLIC_CONTRACT_VERSION} is unsigned in this tree.`,
+    );
+  } else {
+    console.warn(
+      `Warning: verified archive version ${verifiedVersion} differs from SDK identity ${PUBLIC_CONTRACT_VERSION}`,
+    );
+  }
+}

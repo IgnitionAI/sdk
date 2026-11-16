@@ -176,6 +176,7 @@ export class BaseClient {
       if (
         retriesLeft > 0 &&
         RETRYABLE_STATUS_CODES.has(response.status) &&
+        body.error !== "AI_TEMPORARILY_UNAVAILABLE" &&
         this._canRetry(method, options?.headers)
       ) {
         const delay = this._retryDelay(

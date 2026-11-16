@@ -14,6 +14,7 @@ import {
   CapabilityDisabledError,
   CapabilityNotLicensedError,
   ForbiddenIdentityError,
+  OfferingUnavailableError,
 } from "../src/errors";
 
 const headers = { "x-request-id": "req_123" };
@@ -148,6 +149,17 @@ describe("castError", () => {
   test("maps 502 to InternalServerError", () => {
     const err = castError(502, { error: "Bad gateway" }, headers);
     expect(err).toBeInstanceOf(InternalServerError);
+  });
+
+  test("treats checkout conflict as a client APIError and provider unavailability as InternalServerError", () => {
+    const conflict = castError(409, { code: "CHECKOUT_REQUEST_CONFLICT" }, headers);
+    expect(conflict).toBeInstanceOf(APIError);
+    expect(conflict).not.toBeInstanceOf(InternalServerError);
+    expect(conflict.status).toBe(409);
+    const unavailable = castError(503, { code: "PAYMENT_PROVIDER_UNAVAILABLE" }, headers);
+    expect(unavailable).toBeInstanceOf(InternalServerError);
+    expect(unavailable.status).toBe(503);
+    expect(unavailable).not.toBeInstanceOf(OfferingUnavailableError);
   });
 
   test("maps unknown status to generic APIError", () => {

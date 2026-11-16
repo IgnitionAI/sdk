@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@ignitionai/sdk.svg)](https://www.npmjs.com/package/@ignitionai/sdk)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Official open-source SDKs and signed public API contracts for IgnitionRAG deployments.
+Official open-source TypeScript SDK and signed public API contracts for IgnitionRAG deployments.
 
 IgnitionRAG itself is licensed software. This repository contains client libraries only; it does not contain the product server, administration CLI, widgets, deployment tooling, customer configuration, or private MCP implementations.
 
@@ -15,9 +15,10 @@ bun add @ignitionai/sdk@next
 # or npm install @ignitionai/sdk@next
 ```
 
-The current public release is `0.3.0-rc.3` under the npm `next` tag. The
-unqualified install command remains on the stable `0.2.x` line until `0.3.0` is
-promoted to `latest`.
+This source tree prepares `1.0.0` for public contract `2026.11`; publication
+requires the reviewed release workflow. `ingest.file` is a breaking change from
+`0.3.0-rc.4`. The unqualified install command remains on the stable `0.2.x` line
+until `1.0.0` is promoted to `latest`.
 
 ```ts
 import { IgnitionAI } from "@ignitionai/sdk";
@@ -38,8 +39,6 @@ See the [TypeScript SDK guide](./typescript/README.md) for server, browser, stre
 - `contracts/` — signed, versioned public API artifacts and trusted verification keys.
 - `examples/` — minimal runtime smoke examples.
 - `docs/` — compatibility and release documentation.
-
-The Python SDK may be added later. It is not part of the current support commitment.
 
 ## Security
 
