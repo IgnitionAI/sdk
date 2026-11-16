@@ -926,8 +926,8 @@ export interface WidgetSuggestion {
 }
 
 export interface WidgetHumanEscalation {
-  type: "mailto" | "url" | "webhook";
-  target: string;
+  type: "none" | "inbox" | "mailto" | "url" | "webhook";
+  target?: string;
   label?: string;
 }
 
